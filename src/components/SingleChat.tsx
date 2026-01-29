@@ -97,6 +97,12 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   };
 
   useEffect(() => {
+    if (selectedChat && user) {
+      markMessagesAsRead((selectedChat as Chat)._id);
+    }
+  }, [selectedChat, user]);
+
+  useEffect(() => {
     const handleMessageReceived = (newMessageRecieved: Message) => {
       console.log('New message received:', newMessageRecieved);
       if (!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {

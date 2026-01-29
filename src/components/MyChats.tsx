@@ -73,7 +73,7 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
 
   useEffect(() => {
     fetchChats();
-  }, [fetchAgain, user]);
+  }, [fetchAgain, user, selectedChat]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -201,14 +201,20 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
                           {!chat.isGroupChat ? getSender(user, chat.users) : chat.chatName}
                         </Text>
                         {chat.latestMessage && (
-                          <Box>
+                          <Box position="relative">
                             <Text fontSize='xs' opacity={0.8} noOfLines={1}>
                               {chat.latestMessage.sender._id === user?._id ? 'You: ' : ''}
                               {chat.latestMessage.content}
                             </Text>
+                            {!chat.latestMessage.isRead && chat.latestMessage.sender._id !== user?._id && (
+                              <Badge colorScheme="green" fontSize="0.6rem" mt={1} position="absolute" top="100%" left={0}>
+                                Unread
+                              </Badge>
+                            )}
                           </Box>
                         )}
                       </Box>
+
                       {unreadCount > 0 && (
                          <Badge colorScheme="green" borderRadius="full" px={2}>
                            {unreadCount}

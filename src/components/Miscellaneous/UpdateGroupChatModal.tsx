@@ -1,5 +1,5 @@
 import { ViewIcon } from '@chakra-ui/icons'
-import { Box, Button, FormControl, IconButton, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Spinner, useDisclosure, useToast, HStack } from '@chakra-ui/react'
+import { Box, Button, FormControl, IconButton, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Spinner, useDisclosure, useToast, HStack, Text } from '@chakra-ui/react'
 import React, { useState } from 'react'
 import { ChatState } from '../../Context/ChatProvider';
 import UserBadgeItem from '../UserAvatar/UserBadgeItem';
@@ -164,6 +164,49 @@ const UpdateGroupChatModal: React.FC<UpdateGroupChatModalProps> = ({fetchAgain, 
         }
     }
 
+    const handleDeleteGroup = async () => {
+        if ((selectedChat as Chat).groupAdmin._id !== (user as User)._id) {
+            toast({
+                title: 'Only group admin can delete the group!',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+                position: 'bottom'
+            });
+            return;
+        }
+
+        try {
+            await axios.delete('/api/chat/groupdelete', {
+                data: { chatId: (selectedChat as Chat)._id },
+                headers: { Authorization: `Bearer ${(user as User).token}` }
+            });
+            
+            toast({
+                title: 'Group deleted successfully!',
+                status: 'success',
+                duration: 5000,
+                isClosable: true,
+                position: 'bottom'
+            });
+            
+            setSelectedChat('');
+            setFetchAgain(!fetchAgain);
+            onClose();
+        } catch (error: any) {
+            toast({
+                title: 'Error Occured!',
+                description: error.response?.data?.message || 'Failed to delete group',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+                position: 'bottom'
+            });
+        }
+    };
+
+    const isAdmin = (selectedChat as Chat).groupAdmin._id === (user as User)._id;
+
     return (
         <>
           <IconButton
@@ -197,44 +240,56 @@ const UpdateGroupChatModal: React.FC<UpdateGroupChatModalProps> = ({fetchAgain, 
                   ))}
                 </Box>
 
-                <FormControl display='flex' gap={2}>
-                  <Input
-                    placeholder='Chat Name'
-                    value={groupChatName}
-                    onChange={(e)=>setGroupChatName(e.target.value)}
-                    borderRadius="md"
-                    focusBorderColor="blue.400"
-                  />
-                  <Button
-                    colorScheme='teal'
-                    isLoading={renameLoading}
-                    onClick={handleRename}
-                    _hover={{ transform: "scale(1.05)" }}
-                  >
-                    Update
-                  </Button>
-                </FormControl>
+                {isAdmin && (
+                  <>
+                    <FormControl display='flex' gap={2}>
+                      <Input
+                        placeholder='Chat Name'
+                        value={groupChatName}
+                        onChange={(e)=>setGroupChatName(e.target.value)}
+                        borderRadius="md"
+                        focusBorderColor="blue.400"
+                      />
+                      <Button
+                        colorScheme='teal'
+                        isLoading={renameLoading}
+                        onClick={handleRename}
+                        _hover={{ transform: "scale(1.05)" }}
+                      >
+                        Update
+                      </Button>
+                    </FormControl>
 
-                <FormControl>
-                  <Input
-                    placeholder='Add User to group'
-                    value={search}
-                    onChange={(e)=> handleSearch(e.target.value)}
-                    borderRadius="md"
-                    focusBorderColor="blue.400"
-                  />
-                </FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder='Add User to group'
+                        value={search}
+                        onChange={(e)=> handleSearch(e.target.value)}
+                        borderRadius="md"
+                        focusBorderColor="blue.400"
+                      />
+                    </FormControl>
 
-                {loading ? (
-                  <Spinner size='lg' display="flex" m="auto" />
-                ) : (
-                  searchReslut?.map((user)=>(
-                    <UserListItem key={user._id} user={user} handleFunction={()=> handleAddUser(user)} />
-                  ))
+                    {loading ? (
+                      <Spinner size='lg' display="flex" m="auto" />
+                    ) : (
+                      searchReslut?.map((user)=>(
+                        <UserListItem key={user._id} user={user} handleFunction={()=> handleAddUser(user)} />
+                      ))
+                    )}
+                  </>
+                )}
+
+                {!isAdmin && (
+                  <Box textAlign="center" py={4}>
+                    <Text fontSize="sm" color="gray.600">
+                      Only group admin can manage group settings
+                    </Text>
+                  </Box>
                 )}
               </ModalBody>
 
-              <ModalFooter justifyContent="center">
+              <ModalFooter justifyContent="space-between">
                 <Button
                   colorScheme='red'
                   onClick={()=> handleRemove(user as User)}
@@ -242,6 +297,17 @@ const UpdateGroupChatModal: React.FC<UpdateGroupChatModalProps> = ({fetchAgain, 
                 >
                   Leave Group
                 </Button>
+                
+                {isAdmin && (
+                  <Button
+                    colorScheme='red'
+                    variant='outline'
+                    onClick={handleDeleteGroup}
+                    _hover={{ transform: "scale(1.05)" }}
+                  >
+                    Delete Group
+                  </Button>
+                )}
               </ModalFooter>
             </ModalContent>
           </Modal>
