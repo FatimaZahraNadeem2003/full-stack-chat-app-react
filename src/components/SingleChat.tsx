@@ -89,6 +89,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
   useEffect(() => {
     socket.on('message recieved', (newMessageRecieved: Message) => {
+      console.log('New message received:', newMessageRecieved); 
       if (!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
         const enhancedNotification = {
           ...newMessageRecieved,
@@ -96,14 +97,23 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
           timestamp: new Date().toISOString(),
           isRead: false
         };
-        setNotification(prev => [enhancedNotification, ...prev]);
+        console.log('Adding notification:', enhancedNotification);
+        setNotification(prev => {
+          const newNotifications = [enhancedNotification, ...prev];
+          console.log('Updated notifications:', newNotifications); 
+          return newNotifications;
+        });
         setFetchAgain(!fetchAgain);
       } else {
         setMessages(prev => [...prev, newMessageRecieved]);
         markMessagesAsRead(newMessageRecieved.chat._id);
       }
     });
-  }, [socket, selectedChatCompare, fetchAgain]);
+    
+    return () => {
+      socket.off('message recieved');
+    };
+  }, [socket, selectedChatCompare, fetchAgain, setNotification, setFetchAgain]);
 
   const markMessagesAsRead = async (chatId: string) => {
     try {
