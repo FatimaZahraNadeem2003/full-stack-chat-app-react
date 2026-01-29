@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ChatState } from '../Context/ChatProvider'
+import { ChatState } from '../Context/ChatProvider';
 import {
   Box,
   Button,
@@ -11,47 +11,54 @@ import {
   Divider,
   IconButton,
   Collapse,
-} from '@chakra-ui/react'
-import axios from 'axios'
-import { AddIcon, HamburgerIcon } from '@chakra-ui/icons'
-import ChatLoading from './ChatLoading'
-import { getSender } from '../config/ChatLogics'
-import GroupChatModal from './Miscellaneous/GroupChatModal'
+  Badge
+} from '@chakra-ui/react';
+import axios from 'axios';
+import { AddIcon, HamburgerIcon } from '@chakra-ui/icons';
+import ChatLoading from './ChatLoading';
+import { getSender } from '../config/ChatLogics';
+import GroupChatModal from './Miscellaneous/GroupChatModal';
+import UnreadBadge from './Miscellaneous/UnreadBadge';
 
 interface MyChatsProps {
-  fetchAgain: boolean
+  fetchAgain: boolean;
 }
 
 interface User {
-  _id: string
-  name: string
-  email: string
-  pic: string
-  token: string
+  _id: string;
+  name: string;
+  email: string;
+  pic: string;
+  token?: string;
+}
+
+interface Message {
+  _id: string;
+  sender: User;
+  content: string;
+  chat: Chat;
+  isRead?: boolean;
 }
 
 interface Chat {
-  _id: string
-  isGroupChat: boolean
-  chatName: string
-  users: User[]
+  _id: string;
+  isGroupChat: boolean;
+  chatName: string;
+  users: User[];
+  latestMessage?: Message;
+  unreadCount?: number;
 }
 
 const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
-  const [showChats, setShowChats] = useState(true)
-  const { user, selectedChat, setSelectedChat, chats, setChats } = ChatState()
-  const toast = useToast()
+  const [showChats, setShowChats] = useState(true);
+  const { user, selectedChat, setSelectedChat, chats, setChats } = ChatState();
+  const toast = useToast();
 
   const fetchChats = async () => {
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${(user as User).token}`,
-        },
-      }
-
-      const { data } = await axios.get<Chat[]>('/api/chat', config)
-      setChats(data)
+      const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
+      const { data } = await axios.get<Chat[]>('/api/chat', config);
+      setChats(data);
     } catch (error) {
       toast({
         title: 'Error Occured!',
@@ -59,30 +66,39 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
         status: 'error',
         duration: 5000,
         isClosable: true,
-        position: 'bottom-left',
+        position: 'bottom-left'
       })
     }
   }
 
   useEffect(() => {
-    fetchChats()
-  }, [fetchAgain, user])
+    fetchChats();
+  }, [fetchAgain, user]);
+
+  const getUnreadCount = (chat: Chat): number => {
+    if (chat.latestMessage && !chat.latestMessage.isRead && chat.latestMessage.sender._id !== user?._id) {
+      return chat.unreadCount || 1;
+    }
+    return 0;
+  };
 
   return (
     <Box
-      display={{ base: selectedChat ? 'none' : 'flex', md: 'flex' }}
-      flexDir="column"
+      display={{ base: selectedChat ? "none" : "flex", md: "flex" }}
+      flexDir='column'
       p={3}
       bg="rgba(255,255,255,0.1)"
       backdropFilter="blur(12px)"
       w={{ base: '100%', md: '32%' }}
-      borderRadius="2xl"
-      borderWidth="1px"
+      borderRadius='2xl'
+      borderWidth='1px'
       borderColor="gray.200"
-      boxShadow="xl"
-      h="100vh"              
+      boxShadow='xl'
+      h="100%" // Parent container ki poori height lega (100vh nahi)
+      overflow="hidden" // Outer box scroll nahi hona chahiye
     >
-      <Flex align="center" justify="space-between" px={2} pb={3}>
+      {/* Header */}
+      <Flex align='center' justify='space-between' px={2} pb={3} flexShrink={0}>
         <Flex align="center" gap={2}>
           <IconButton
             aria-label="Toggle chats"
@@ -91,10 +107,9 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
             variant="ghost"
             onClick={() => setShowChats(!showChats)}
           />
-
           <Text
-            fontSize="2xl"
-            fontWeight="700"
+            fontSize='2xl'
+            fontWeight='700'
             bgGradient="linear(to-r, teal.400, blue.500)"
             bgClip="text"
           >
@@ -104,10 +119,10 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
 
         <GroupChatModal>
           <Button
-            size="sm"
-            colorScheme="teal"
+            size='sm'
+            colorScheme='teal'
             rightIcon={<AddIcon />}
-            borderRadius="full"
+            borderRadius='full'
             _hover={{ transform: 'scale(1.05)', boxShadow: 'md' }}
           >
             New Group
@@ -117,76 +132,78 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
 
       <Divider mb={2} />
 
-      <Collapse in={showChats} animateOpacity style={{ height: '100%' }}>
+      {/* Chat List Container */}
+      <Collapse in={showChats} animateOpacity style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Box
-          flex="1"
+          flex='1' // Ye bachi hui sari space le lega
           bg="rgba(255,255,255,0.15)"
           backdropFilter="blur(8px)"
-          borderRadius="2xl"
+          borderRadius='2xl'
           p={2}
-          overflowY="auto"
-          maxH="calc(100vh - 160px)"   
+          overflowY='auto' // Sirf yahan scroll aayega
+          overflowX='hidden'
           css={{
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'teal',
-              borderRadius: '24px',
-            },
+            "&::-webkit-scrollbar": { width: "6px" },
+            "&::-webkit-scrollbar-thumb": { background: "teal", borderRadius: "24px" },
+            "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.05)" }
           }}
         >
           {chats ? (
-            <Stack spacing={3}>
+            <Stack spacing={3} pb={2}> {/* Thora sa bottom padding taake last chat clear dikhayi de */}
               {chats.map((chat: Chat) => {
-                const isSelected = selectedChat?._id === chat._id
+                const isSelected = selectedChat?._id === chat._id;
+                const unreadCount = getUnreadCount(chat);
 
                 return (
-                  <Flex
-                    key={chat._id}
-                    align="center"
-                    gap={3}
-                    px={3}
-                    py={3}
-                    borderRadius="xl"
-                    cursor="pointer"
-                    bg={isSelected ? 'teal.500' : 'white'}
-                    color={isSelected ? 'white' : 'gray.800'}
-                    boxShadow={isSelected ? 'md' : 'sm'}
-                    transition="all 0.2s"
-                    _hover={{
-                      bg: isSelected ? 'teal.600' : 'gray.100',
-                      transform: 'scale(1.02)',
-                    }}
-                    onClick={() => setSelectedChat(chat)}
-                  >
-                    <Avatar
-                      size="sm"
-                      name={
-                        !chat.isGroupChat
-                          ? getSender(user, chat.users)
-                          : chat.chatName
-                      }
-                      src={
-                        !chat.isGroupChat
-                          ? chat.users.find((u) => u._id !== user?._id)?.pic
+                  <Box key={chat._id} position="relative">
+                    <Flex
+                      align='center'
+                      gap={3}
+                      px={3}
+                      py={3}
+                      borderRadius='xl'
+                      cursor='pointer'
+                      bg={isSelected ? 'teal.500' : 'white'}
+                      color={isSelected ? 'white' : 'gray.800'}
+                      boxShadow={isSelected ? 'md' : 'sm'}
+                      transition='all 0.2s'
+                      _hover={{
+                        bg: isSelected ? 'teal.600' : 'gray.100',
+                        transform: 'scale(1.01)'
+                      }}
+                      onClick={() => setSelectedChat(chat)}
+                    >
+                      <Avatar
+                        size='sm'
+                        name={!chat.isGroupChat ? getSender(user, chat.users) : chat.chatName}
+                        src={!chat.isGroupChat
+                          ? chat.users.find(u => u._id !== user?._id)?.pic
                           : undefined
-                      }
-                      borderWidth={isSelected ? '2px' : '1px'}
-                      borderColor={isSelected ? 'white' : 'gray.300'}
-                    />
+                        }
+                        borderWidth={isSelected ? "2px" : "1px"}
+                        borderColor={isSelected ? "white" : "gray.300"}
+                      />
 
-                    <Box>
-                      <Text fontWeight="600">
-                        {!chat.isGroupChat
-                          ? getSender(user, chat.users)
-                          : chat.chatName}
-                      </Text>
-                      <Text fontSize="xs" opacity={0.8}>
-                        {chat.isGroupChat ? 'Group Chat' : 'Direct Message'}
-                      </Text>
-                    </Box>
-                  </Flex>
+                      <Box flex="1">
+                        <Text fontWeight='600' mb={0} noOfLines={1}>
+                          {!chat.isGroupChat ? getSender(user, chat.users) : chat.chatName}
+                        </Text>
+                        {chat.latestMessage && (
+                          <Box>
+                            <Text fontSize='xs' opacity={0.8} noOfLines={1}>
+                              {chat.latestMessage.sender._id === user?._id ? 'You: ' : ''}
+                              {chat.latestMessage.content}
+                            </Text>
+                          </Box>
+                        )}
+                      </Box>
+                      {unreadCount > 0 && (
+                         <Badge colorScheme="green" borderRadius="full" px={2}>
+                           {unreadCount}
+                         </Badge>
+                      )}
+                    </Flex>
+                  </Box>
                 )
               })}
             </Stack>
@@ -199,4 +216,4 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
   )
 }
 
-export default MyChats
+export default MyChats;

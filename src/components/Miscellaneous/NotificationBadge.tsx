@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { Badge, Menu, MenuButton, MenuList, MenuItem, Button, Box, Text, Avatar, Flex, VStack, Icon, Collapse, Portal } from '@chakra-ui/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Badge, Menu, MenuButton, MenuList, MenuItem, Button, Box, Text, Avatar, Flex, VStack, Portal } from '@chakra-ui/react';
 import { BellIcon } from '@chakra-ui/icons';
 import { ChatState } from '../../Context/ChatProvider';
-import { getSender } from '../../config/ChatLogics';
 
 interface NotificationBadgeProps {
   children?: React.ReactNode;
 }
 
 const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children }) => {
-  const { notification, setNotification } = ChatState();
+  const { notification, setNotification, setSelectedChat } = ChatState();
   const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleMenuToggle = () => {
     setIsOpen(!isOpen);
@@ -20,9 +20,41 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children }) => {
     setNotification([]);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen]);
+
   return (
-    <Box position="relative" className="notification-dropdown">
-      <Menu isOpen={isOpen} placement="bottom-end">
+    <Box position="relative" ref={menuRef}>
+      <Menu isOpen={isOpen} placement="bottom-end" onClose={() => setIsOpen(false)}>
         <MenuButton 
           as={Button} 
           variant="ghost" 
@@ -74,30 +106,40 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children }) => {
             
             <VStack spacing={1} align="stretch" maxH="300px" overflowY="auto">
               {notification.length > 0 ? (
-                [...notification].reverse().map((msg, index) => (
+                [...notification].reverse().map((notif, index) => (
                   <MenuItem 
-                    key={`${msg._id}-${index}`} 
+                    key={`${notif._id}-${index}`} 
                     px={3} 
                     py={2} 
                     _hover={{ bg: 'gray.100' }}
                     onClick={() => {
+                      setSelectedChat(notif.chat);
                       setIsOpen(false);
+                      setNotification(prev => prev.map(n => 
+                        n._id === notif._id ? {...n, isRead: true} : n
+                      ));
                     }}
                   >
                     <Flex align="center" gap={3}>
                       <Avatar 
                         size="sm" 
-                        name={msg.sender?.name} 
-                        src={msg.sender?.pic} 
+                        name={notif.sender?.name} 
+                        src={notif.sender?.pic} 
                       />
                       <Box flex="1">
                         <Text fontSize="sm" fontWeight="600">
-                          {msg.sender?.name}: {msg.content}
+                          {notif.sender?.name}
+                        </Text>
+                        <Text fontSize="sm" color="gray.700" noOfLines={1}>
+                          {notif.content}
                         </Text>
                         <Text fontSize="xs" color="gray.500">
-                          New message in {msg.chat?.chatName || 'chat'}
+                          {notif.timestamp ? new Date(notif.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}
                         </Text>
                       </Box>
+                      {!notif.isRead && (
+                        <Box w={2} h={2} bg="blue.500" borderRadius="full" />
+                      )}
                     </Flex>
                   </MenuItem>
                 ))

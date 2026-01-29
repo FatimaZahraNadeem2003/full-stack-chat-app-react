@@ -90,15 +90,29 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   useEffect(() => {
     socket.on('message recieved', (newMessageRecieved: Message) => {
       if (!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
-        if (!notification.includes(newMessageRecieved)) {
-          setNotification([newMessageRecieved, ...notification]);
-          setFetchAgain(!fetchAgain);
-        }
+        const enhancedNotification = {
+          ...newMessageRecieved,
+          notificationText: `${newMessageRecieved.sender.name} has sent you a message: "${newMessageRecieved.content}"`,
+          timestamp: new Date().toISOString(),
+          isRead: false
+        };
+        setNotification(prev => [enhancedNotification, ...prev]);
+        setFetchAgain(!fetchAgain);
       } else {
-        setMessages([...messages, newMessageRecieved])
+        setMessages(prev => [...prev, newMessageRecieved]);
+        markMessagesAsRead(newMessageRecieved.chat._id);
       }
     });
-  })
+  }, [socket, selectedChatCompare, fetchAgain]);
+
+  const markMessagesAsRead = async (chatId: string) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
+      await axios.put(`/api/chat/${chatId}/read`, {}, config);
+    } catch (error) {
+      console.log('Error marking messages as read:', error);
+    }
+  };
 
   const sendMessage = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && newMessage) {
