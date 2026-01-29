@@ -87,6 +87,15 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     selectedChatCompare = selectedChat;
   }, [selectedChat]);
 
+  const markMessagesAsRead = async (chatId: string) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
+      await axios.put(`/api/chat/${chatId}/read`, {}, config);
+    } catch (error) {
+      console.log('Error marking messages as read:', error);
+    }
+  };
+
   useEffect(() => {
     const handleMessageReceived = (newMessageRecieved: Message) => {
       console.log('New message received:', newMessageRecieved);
@@ -115,16 +124,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     return () => {
       socket.off('message recieved', handleMessageReceived);
     };
-  }, [socket, selectedChatCompare, setNotification, setFetchAgain, setMessages, markMessagesAsRead]);
-
-  const markMessagesAsRead = async (chatId: string) => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
-      await axios.put(`/api/chat/${chatId}/read`, {}, config);
-    } catch (error) {
-      console.log('Error marking messages as read:', error);
-    }
-  };
+  }, [socket, selectedChatCompare, setNotification, setFetchAgain, setMessages]);
 
   const sendMessage = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && newMessage) {
