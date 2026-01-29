@@ -27,7 +27,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({user, children}) => {
           onClick={onOpen} 
           aria-label="View Profile" 
           colorScheme="blue"
-          _hover={{ bg: "blue.500", transform: "scale(1.1)" }}
+          _hover={{ bg: "blue.500", transform: "scale(1.05)" }}
         />
       )}
 

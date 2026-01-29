@@ -95,6 +95,43 @@ const Login: React.FC = () => {
     }
   }
 
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    
+    try {
+      const config = {
+        headers: {
+          'Content-type': 'application/json',
+        },
+      };
+
+      const response = await axios.post('/api/user/guest', {}, config);
+
+      toast({
+        title: 'Guest login successful',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+        position: 'bottom',
+      });
+
+      setUser(response.data);
+      localStorage.setItem('userInfo', JSON.stringify(response.data));
+      setLoading(false);
+      history.push('/chats');
+    } catch (error: any) {
+      toast({
+        title: 'Error logging in as guest!',
+        description: error.response?.data?.message || 'An error occurred',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+        position: 'bottom',
+      });
+      setLoading(false);
+    }
+  }
+
   return (
     <Box
       w="100%"
@@ -186,10 +223,8 @@ const Login: React.FC = () => {
           size="lg"
           leftIcon={<Icon as={FaUserFriends} />}
           borderRadius="xl"
-          onClick={() => {
-            setEmail('guest@example.com')
-            setPassword('123456')
-          }}
+          onClick={handleGuestLogin}
+          isLoading={loading}
         >
           Try Guest Account 🎉
         </Button>

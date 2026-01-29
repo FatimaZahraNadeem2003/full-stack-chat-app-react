@@ -22,13 +22,24 @@ import {
   Flex,
   HStack,
   IconButton,
-  Portal
+  Portal,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  InputGroup,
+  InputLeftElement,
+  Icon
 } from '@chakra-ui/react';
 
 import { BellIcon, ChevronDownIcon } from '@chakra-ui/icons';
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiEdit3 } from "react-icons/fi";
 import { ChatState } from './../../Context/ChatProvider';
-import ProfileModal from './ProfileModal';
 import { useHistory } from 'react-router-dom';
 import axios from 'axios';
 import ChatLoading from '../ChatLoading';
@@ -45,13 +56,68 @@ const SideDrawer: React.FC = () => {
   const [loadingChat, setLoadingChat] = useState(false);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { user, setSelectedChat, chats, setChats, notification, setNotification } = ChatState();
+  const { user, setUser, setSelectedChat, chats, setChats, notification, setNotification } = ChatState();
   const history = useHistory();
   const toast = useToast();
+
+  const profileModalDisclosure = useDisclosure();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedName, setUpdatedName] = useState(user?.name || '');
+  const [updatedPic, setUpdatedPic] = useState(user?.pic || '');
+  const [updating, setUpdating] = useState(false);
 
   const logoutHandler = () => {
     localStorage.removeItem("userInfo");
     history.push('/');
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveChanges = async () => {
+    setUpdating(true);
+    try {
+      const config = {
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+      };
+
+      const { data } = await axios.post('/api/user/update', {
+        name: updatedName,
+        pic: updatedPic
+      }, config);
+
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+
+      toast({
+        title: 'Profile updated successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error updating profile',
+        description: error.response?.data?.message || 'An error occurred',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setUpdating(false);
+  };
+
+  const handleCancelEdit = () => {
+    setUpdatedName(user?.name || '');
+    setUpdatedPic(user?.pic || '');
+    setIsEditing(false);
   };
 
   const handleSearch = async () => {
@@ -197,9 +263,12 @@ const SideDrawer: React.FC = () => {
             </MenuButton>
             <Portal>
               <MenuList zIndex={9999}>
-                <ProfileModal user={user}>
-                  <MenuItem>My Profile</MenuItem>
-                </ProfileModal>
+                <MenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  profileModalDisclosure.onOpen();
+                }}>
+                  My Profile
+                </MenuItem>
                 <MenuDivider />
                 <MenuItem onClick={logoutHandler}>Logout</MenuItem>
               </MenuList>
@@ -253,6 +322,137 @@ const SideDrawer: React.FC = () => {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      <Modal size='md' isOpen={profileModalDisclosure.isOpen} onClose={profileModalDisclosure.onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent borderRadius="xl" bg="gray.50" boxShadow="2xl" p={4}>
+          <ModalHeader
+            fontSize={{ base: "2xl", md: "3xl" }}
+            fontFamily="Work sans"
+            display='flex'
+            justifyContent='space-between'
+            alignItems='center'
+          >
+            {isEditing ? 'Edit Profile' : 'My Profile'}
+            {!isEditing && (
+              <Button
+                leftIcon={<Icon as={FiEdit3} />}
+                variant="ghost"
+                colorScheme="blue"
+                size="sm"
+                onClick={handleEditClick}
+              >
+                Edit
+              </Button>
+            )}
+          </ModalHeader>
+          <ModalCloseButton />
+
+          <ModalBody
+            display='flex'
+            flexDir='column'
+            alignItems='center'
+            justifyContent='center'
+            gap={5}
+            mt={2}
+          >
+            {isEditing ? (
+              <FormControl isRequired mb={4}>
+                <FormLabel>Name</FormLabel>
+                <Input
+                  value={updatedName}
+                  onChange={(e) => setUpdatedName(e.target.value)}
+                  placeholder="Enter your name"
+                />
+              </FormControl>
+            ) : (
+              <Box 
+                borderRadius="full" 
+                overflow="hidden" 
+                boxSize="160px" 
+                boxShadow="lg"
+              >
+                <img
+                  src={user?.pic || "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"}
+                  alt={user?.name || 'User'}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover"
+                  }}
+                />
+              </Box>
+            )}
+
+            {isEditing ? (
+              <FormControl mb={4}>
+                <FormLabel>Profile Picture URL</FormLabel>
+                <InputGroup>
+                  <InputLeftElement
+                    pointerEvents="none"
+                    children={<Icon as={FiEdit3} color="gray.300" />}
+                  />
+                  <Input
+                    value={updatedPic}
+                    onChange={(e) => setUpdatedPic(e.target.value)}
+                    placeholder="Enter image URL"
+                  />
+                </InputGroup>
+              </FormControl>
+            ) : (
+              <Text 
+                fontSize={{ base: "lg", md: "xl" }} 
+                fontFamily="Work sans"
+                color="gray.700"
+                textAlign="center"
+              >
+                Email: {user?.email || 'N/A'}
+              </Text>
+            )}
+            
+            {isEditing && (
+              <Text 
+                fontSize={{ base: "lg", md: "xl" }} 
+                fontFamily="Work sans"
+                color="gray.700"
+                textAlign="center"
+              >
+                Email: {user?.email || 'N/A'} (email cannot be changed)
+              </Text>
+            )}
+          </ModalBody>
+
+          <ModalFooter>
+            {isEditing ? (
+              <>
+                <Button 
+                  colorScheme='red' 
+                  mr={3} 
+                  onClick={handleCancelEdit}
+                  isDisabled={updating}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  colorScheme='green' 
+                  onClick={handleSaveChanges}
+                  isLoading={updating}
+                  loadingText="Saving..."
+                >
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button 
+                colorScheme='blue' 
+                onClick={profileModalDisclosure.onClose}
+              >
+                Close
+              </Button>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };
