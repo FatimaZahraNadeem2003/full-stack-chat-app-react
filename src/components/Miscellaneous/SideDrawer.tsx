@@ -21,7 +21,6 @@ import {
   useToast,
   Flex,
   HStack,
-  IconButton,
   Portal,
   Modal,
   ModalOverlay,
@@ -37,17 +36,14 @@ import {
   Icon
 } from '@chakra-ui/react';
 
-import { BellIcon, ChevronDownIcon } from '@chakra-ui/icons';
+import { ChevronDownIcon } from '@chakra-ui/icons';
 import { FiSearch, FiEdit3 } from "react-icons/fi";
 import { ChatState } from './../../Context/ChatProvider';
 import { useHistory } from 'react-router-dom';
 import axios from 'axios';
 import ChatLoading from '../ChatLoading';
 import UserListItem from '../UserAvatar/UserListItem';
-import { getSender } from '../../config/ChatLogics';
-import NotificationBadge, { Effect } from 'react-notification-badge';
-import { AddIcon } from '@chakra-ui/icons';
-import GroupChatModal from './GroupChatModal';
+import NotificationBadge from './NotificationBadge';
 
 const SideDrawer: React.FC = () => {
   const [search, setSearch] = useState<string>("");
@@ -56,7 +52,7 @@ const SideDrawer: React.FC = () => {
   const [loadingChat, setLoadingChat] = useState(false);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { user, setUser, setSelectedChat, chats, setChats, notification, setNotification } = ChatState();
+  const { user, setUser, setSelectedChat, chats, setChats } = ChatState();
   const history = useHistory();
   const toast = useToast();
 
@@ -217,40 +213,7 @@ const SideDrawer: React.FC = () => {
         </Tooltip>
 
         <Flex flex="1" justify="flex-end" align="center" gap={5}>
-          <Menu isLazy>
-            <MenuButton
-              as={IconButton}
-              variant="ghost"
-              icon={<BellIcon boxSize={6} />}
-              position="relative"
-            >
-              {notification.length > 0 && (
-                <NotificationBadge
-                  count={notification.length}
-                  effect={Effect.SCALE}
-                  style={{ position: 'absolute', top: -5, right: -5, zIndex: 9999 }}
-                />
-              )}
-            </MenuButton>
-            <Portal>
-              <MenuList zIndex={9999}>
-                {!notification.length && <Text px={3} py={2}>No new messages</Text>}
-                {notification.map((notif: any) => (
-                  <MenuItem
-                    key={notif._id}
-                    onClick={() => {
-                      setSelectedChat(notif.chat);
-                      setNotification(notification.filter((n: any) => n !== notif));
-                    }}
-                  >
-                    {notif.chat.isGroupChat
-                      ? `New message in ${notif.chat.chatName}`
-                      : `New message from ${getSender(user, notif.chat.users)}`}
-                  </MenuItem>
-                ))}
-              </MenuList>
-            </Portal>
-          </Menu>
+          <NotificationBadge />
 
           <Menu isLazy>
             <MenuButton

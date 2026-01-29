@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ChatState } from '../Context/ChatProvider'
-import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex } from '@chakra-ui/react';
-import { ArrowBackIcon } from '@chakra-ui/icons';
+import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex, Avatar } from '@chakra-ui/react';
+import { ArrowBackIcon, CloseIcon } from '@chakra-ui/icons';
 import { getSender, getSenderFull } from './../config/ChatLogics';
 import ProfileModal from './Miscellaneous/ProfileModal';
 import UpdateGroupChatModal from './Miscellaneous/UpdateGroupChatModal';
@@ -16,7 +16,7 @@ interface User {
   name: string;
   email: string;
   pic: string;
-  token: string;
+  token?: string; 
 }
 
 interface Chat {
@@ -42,13 +42,13 @@ const ENDPOINT = 'http://localhost:5000';
 var socket: any, selectedChatCompare: any;
 
 const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) => {
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState<string>('');
   const [socketConnected, setSocketConnected] = useState(false);
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   const defaultOptions = {
     loop: true,
@@ -70,14 +70,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       setLoading(false);
       socket.emit('join chat', (selectedChat as Chat)._id);
     } catch (error: any) {
-      toast({
-        title: 'Error Occured!',
-        description: 'Failed to load messages',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-        position: 'bottom'
-      });
+      toast({ title: 'Error Occured!', description: 'Failed to load messages', status: 'error', duration: 5000, isClosable: true, position: 'bottom' });
     }
   }
 
@@ -88,33 +81,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     socket.on('typing', () => setIsTyping(true));
     socket.on('stop typing', () => setIsTyping(false));
   }, [])
-
-  const sendMessage = async (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && newMessage) {
-      socket.emit('stop typing', (selectedChat as Chat)._id)
-      try {
-        const config = { headers: { 'Content-type': 'application/json', Authorization: `Bearer ${(user as User).token}` } };
-        const messageContent = newMessage;
-        setNewMessage('');
-        const { data } = await axios.post<Message>('/api/message', {
-          content: messageContent,
-          chatId: selectedChat
-        }, config);
-
-        socket.emit('new message', data)
-        setMessages([...messages, data])
-      } catch (error: any) {
-        toast({
-          title: 'Error Occured!',
-          description: 'Failed to send the message',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-          position: 'bottom'
-        });
-      }
-    }
-  }
 
   useEffect(() => {
     fetchMessages();
@@ -134,42 +100,56 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     });
   })
 
+  const sendMessage = async (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && newMessage) {
+      socket.emit('stop typing', (selectedChat as Chat)._id)
+      try {
+        const config = { headers: { 'Content-type': 'application/json', Authorization: `Bearer ${(user as User).token}` } };
+        const messageData: any = { content: newMessage, chatId: selectedChat };
+        if (replyingTo) messageData.replyTo = replyingTo._id;
+        
+        setNewMessage('');
+        const { data } = await axios.post<Message>('/api/message', messageData, config);
+        socket.emit('new message', data)
+        setMessages([...messages, data])
+        setReplyingTo(null); 
+      } catch (error: any) {
+        toast({ title: 'Error Occured!', description: 'Failed to send message', status: 'error', duration: 5000, position: 'bottom' });
+      }
+    }
+  }
+
   const typingHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
     if (!socketConnected) return;
-
     if (!typing) {
       setTyping(true);
       socket.emit('typing', (selectedChat as Chat)._id);
     }
-
     let lastTypingTime = new Date().getTime();
-    const timerLength = 3000;
     setTimeout(() => {
-      const timeNow = new Date().getTime();
-      const timeDiff = timeNow - lastTypingTime;
-
-      if (timeDiff >= timerLength && typing) {
+      if (new Date().getTime() - lastTypingTime >= 3000 && typing) {
         socket.emit('stop typing', (selectedChat as Chat)._id);
         setTyping(false);
       }
-    }, timerLength);
+    }, 3000);
   };
+
+  const clearReply = () => setReplyingTo(null);
 
   return (
     <>
       {selectedChat ? (
-        <>
+        <Flex flexDir="column" h="100%" w="100%" overflow="hidden">
           <Flex
-            fontSize={{ base: '28px', md: '30px' }}
-            pb={3}
-            px={2}
+            fontSize={{ base: '24px', md: '28px' }}
+            p={3}
             w='100%'
             fontFamily='Work sans'
             alignItems='center'
             justifyContent='space-between'
-            zIndex={0} 
-            position="relative"
+            borderBottomWidth="1px"
+            bg="whiteAlpha.900"
           >
             <IconButton
               display={{ base: 'flex', md: 'none' }}
@@ -179,68 +159,80 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
               variant='ghost'
             />
 
+            <Box flex="1" ml={2}>
+              {!selectedChat.isGroupChat ? (
+                <Text fontWeight="bold">{getSender(user, selectedChat.users)}</Text>
+              ) : (
+                <Text fontWeight="bold">{selectedChat.chatName.toUpperCase()}</Text>
+              )}
+            </Box>
+
             {!selectedChat.isGroupChat ? (
-              <>
-                {getSender(user, selectedChat.users)}
-                <ProfileModal user={getSenderFull(user, selectedChat.users) as User} />
-              </>
+              <ProfileModal user={getSenderFull(user, selectedChat.users) as User} />
             ) : (
-              <>
-                {selectedChat.chatName.toUpperCase()}
-                <UpdateGroupChatModal
-                  fetchAgain={fetchAgain}
-                  setFetchAgain={setFetchAgain}
-                  fetchMessages={fetchMessages}
-                />
-              </>
+              <UpdateGroupChatModal
+                fetchAgain={fetchAgain}
+                setFetchAgain={setFetchAgain}
+                fetchMessages={fetchMessages}
+              />
             )}
           </Flex>
 
           <Box
             display='flex'
             flexDir='column'
-            justifyContent='flex-end'
+            flex="1" 
             p={3}
             bg='gray.50'
-            w='100%'
-            h='100%'
-            borderRadius='lg'
-            overflowY='hidden'
-            boxShadow='inner'
-            zIndex={0} 
-            position="relative"
+            overflowY='auto' 
+            css={{
+              '&::-webkit-scrollbar': { width: '5px' },
+              '&::-webkit-scrollbar-thumb': { background: '#cbd5e0', borderRadius: '10px' },
+            }}
           >
             {loading ? (
               <Spinner size='xl' w={20} h={20} alignSelf='center' margin='auto' />
             ) : (
-              <ScrollableChat messages={messages} />
+              <ScrollableChat messages={messages as any} setMessages={setMessages as any} />
+            )}
+          </Box>
+
+          <Box p={3} bg="white" borderTopWidth="1px">
+            {isTyping && (
+              <Box mb={1} ml={2}>
+                <Lottie options={defaultOptions} width={50} style={{ marginLeft: 0 }} />
+              </Box>
+            )}
+            
+            {replyingTo && (
+              <Box bg="gray.100" borderLeft="4px solid" borderColor="teal.400" p={2} mb={2} borderRadius="md">
+                <Flex justifyContent="space-between" alignItems="center">
+                   <Text fontSize="xs" fontWeight="bold" color="teal.600">{replyingTo.sender.name}</Text>
+                   <CloseIcon fontSize="10px" cursor="pointer" onClick={clearReply} />
+                </Flex>
+                <Text fontSize="sm" noOfLines={1}>{replyingTo.content}</Text>
+              </Box>
             )}
 
-            <FormControl onKeyDown={sendMessage} isRequired mt={3} display='flex' alignItems='center'>
-              {isTyping && (
-                <Box mr={2}>
-                  <Lottie options={defaultOptions} width={50} style={{ marginBottom: 10 }} />
-                </Box>
-              )}
+            <FormControl onKeyDown={sendMessage} isRequired display='flex' alignItems='center'>
               <Input
                 variant='filled'
-                bg='white'
+                bg='gray.100'
                 placeholder='Enter a message...'
                 onChange={typingHandler}
                 value={newMessage}
                 borderRadius='full'
-                boxShadow='sm'
-                _focus={{ borderColor: 'teal.400' }}
+                _focus={{ bg: "white", borderColor: "teal.400" }}
               />
             </FormControl>
           </Box>
-        </>
+        </Flex>
       ) : (
-        <Box display='flex' alignItems='center' justifyContent='center' h='100%'>
-          <Text fontSize='3xl' pb={3} fontFamily='Work sans' color='gray.500'>
+        <Flex align='center' justify='center' h='100%' w="100%">
+          <Text fontSize='3xl' fontFamily='Work sans' color='gray.400'>
             Click on a user to start chatting
           </Text>
-        </Box>
+        </Flex>
       )}
     </>
   )

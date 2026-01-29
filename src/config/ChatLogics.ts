@@ -3,12 +3,22 @@ export interface User {
   name: string;
   email: string;
   pic: string;
+  token?: string; 
+}
+
+export interface Chat {
+  _id: string;
+  isGroupChat: boolean;
+  users: User[];
+  chatName: string;
 }
 
 export interface Message {
   _id: string;
   sender: User;
   content: string;
+  chat: Chat;
+  replyTo?: Message; 
 }
 
 export const getSender = (loggedUser: User | null, users: User[]): string => {
