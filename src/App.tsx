@@ -1,16 +1,25 @@
 import React from 'react'
-import { Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import ChatPage from './pages/ChatPage';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import HomePage from "./pages/HomePage";
+import ChatPage from "./pages/ChatPage";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+
 import './App.css'
 
-const App: React.FC = () => {
+function App() {
   return (
-    <div className='App'>
-        <Route path='/' component={HomePage} exact/>
-        <Route path='/chats' component={ChatPage}/>
+    <div className="App">
+      <Router>
+        <Switch>
+          <Route path="/" component={HomePage} exact />
+          <Route path="/chats" component={ChatPage} />
+          <Route path="/admin" component={AdminLogin} exact />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
+        </Switch>
+      </Router>
     </div>
-  )
+  );
 }
 
 export default App

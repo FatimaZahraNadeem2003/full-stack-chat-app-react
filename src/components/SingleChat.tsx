@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ChatState } from '../Context/ChatProvider'
-import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex, Avatar } from '@chakra-ui/react';
-import { ArrowBackIcon, CloseIcon } from '@chakra-ui/icons';
+import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex, Avatar, InputGroup, InputRightElement } from '@chakra-ui/react';
+import { ArrowBackIcon, CloseIcon, ViewIcon } from '@chakra-ui/icons';
 import { getSender, getSenderFull } from './../config/ChatLogics';
 import ProfileModal from './Miscellaneous/ProfileModal';
 import UpdateGroupChatModal from './Miscellaneous/UpdateGroupChatModal';
@@ -183,6 +183,89 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     };
   }, [selectedChat, setSelectedChat]);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      console.log('Starting file upload for:', file.name, file.type);
+      const config = { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${(user as User).token}` } };
+      const response = await axios.post('/api/upload', formData, config);
+      console.log('Upload response:', response.data);
+      return response.data.fileUrl;
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      console.error('Error response:', error.response);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+      toast({ 
+        title: 'Error Occured!', 
+        description: error.response?.data?.message || error.message || 'Failed to upload file', 
+        status: 'error', 
+        duration: 5000, 
+        position: 'bottom' 
+      });
+      throw error;
+    }
+  };
+
+  const sendFileMessage = async () => {
+    if (!selectedFile || !selectedChat) return;
+    
+    try {
+      console.log('Uploading file:', selectedFile.name, selectedFile.type);
+      const fileUrl = await handleFileUpload(selectedFile);
+      console.log('File uploaded successfully, URL:', fileUrl);
+      
+      const config = { 
+        headers: { 
+          'Content-type': 'application/json', 
+          Authorization: `Bearer ${(user as User).token}` 
+        } 
+      };
+      
+      const messageData = { 
+        content: selectedFile.name,
+        chatId: selectedChat,
+        fileUrl: fileUrl,
+        fileType: selectedFile.type
+      };
+      
+      console.log('Sending message with file data:', messageData);
+      const { data } = await axios.post<Message>('/api/message', messageData, config);
+      console.log('Message sent successfully:', data);
+      socket.emit('new message', data);
+      setMessages([...messages, data]);
+      setSelectedFile(null);
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Send file error:', error);
+      console.error('Error response:', error.response);
+      toast({ 
+        title: 'Error Occured!', 
+        description: error.response?.data?.message || error.message || 'Failed to send file', 
+        status: 'error', 
+        duration: 5000, 
+        position: 'bottom' 
+      });
+    }
+  };
+
   return (
     <>
       {selectedChat ? (
@@ -260,17 +343,54 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
               </Box>
             )}
 
+            {selectedFile && (
+              <Box bg="blue.50" p={2} mb={2} borderRadius="md" border="1px solid" borderColor="blue.200">
+                <Flex justifyContent="space-between" alignItems="center">
+                  <Text fontSize="sm">
+                    <ViewIcon mr={2} /> {selectedFile.name}
+                  </Text>
+                  <IconButton 
+                    size="xs" 
+                    colorScheme="blue" 
+                    onClick={sendFileMessage}
+                    aria-label="Send file"
+                    icon={<ArrowBackIcon />}
+                  />
+                </Flex>
+              </Box>
+            )}
+            
             <FormControl onKeyDown={sendMessage} isRequired display='flex' alignItems='center'>
-              <Input
-                variant='filled'
-                bg='gray.100'
-                placeholder='Enter a message...'
-                onChange={typingHandler}
-                value={newMessage}
-                borderRadius='full'
-                _focus={{ bg: "white", borderColor: "teal.400" }}
-              />
+              <InputGroup>
+                <Input
+                  variant='filled'
+                  bg='gray.100'
+                  placeholder='Enter a message...'
+                  onChange={typingHandler}
+                  value={newMessage}
+                  borderRadius='full'
+                  _focus={{ bg: "white", borderColor: "teal.400" }}
+                />
+                <InputRightElement width="4.5rem">
+                  <IconButton
+                    aria-label="Upload file"
+                    icon={<ViewIcon />}
+                    size="sm"
+                    colorScheme="teal"
+                    onClick={() => fileInputRef.current?.click()}
+                    mr={2}
+                  />
+                </InputRightElement>
+              </InputGroup>
             </FormControl>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              accept="*/*"
+            />
           </Box>
         </Flex>
       ) : (

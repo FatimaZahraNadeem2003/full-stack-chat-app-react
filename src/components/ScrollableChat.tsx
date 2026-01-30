@@ -36,8 +36,10 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
       
       <ScrollableFeed>
         {messages && messages.map((m, i) => {
-          const isMe = m.sender._id === user._id;
-          const isFirstInGroup = i === 0 || messages[i - 1].sender._id !== m.sender._id;
+          if (!m.sender) return null;
+          
+          const isMe = m.sender._id === user?._id;
+          const isFirstInGroup = i === 0 || !messages[i - 1]?.sender || messages[i - 1].sender._id !== m.sender._id;
 
           return (
             <Box
@@ -93,7 +95,7 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
                 >
                   <Flex alignItems="flex-start" gap={2}>
                     <VStack align="stretch" spacing={1} flex={1}>
-                      {m.replyTo && (
+                      {m.replyTo && m.replyTo.sender && (
                         <Box
                           bg="blackAlpha.100" 
                           borderLeft="3px solid"
@@ -140,7 +142,7 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
               </VStack>
             </Box>
           );
-        })}
+        }).filter(Boolean)} 
       </ScrollableFeed>
     </Box>
   )

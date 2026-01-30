@@ -22,11 +22,17 @@ export interface Message {
 }
 
 export const getSender = (loggedUser: User | null, users: User[]): string => {
-    return users[0]?._id === loggedUser?._id ? users[1].name : users[0].name;
+    if (!users || users.length < 2) return "Unknown User";
+    
+    const otherUser = users[0]?._id === loggedUser?._id ? users[1] : users[0];
+    return otherUser?.name || "Unknown User";
 }
 
 export const getSenderFull = (loggedUser: User, users: User[]): User | string => {
-    return users[0]._id === loggedUser._id ? users[1] : users[0].name;
+    if (!users || users.length < 2) return "Unknown User";
+    
+    const otherUser = users[0]._id === loggedUser._id ? users[1] : users[0];
+    return otherUser || "Unknown User";
 }
 
 export const isSameSender = (messages: Message[], m: Message, i: number, userId: string): boolean => {
@@ -67,5 +73,6 @@ export const isSameSenderMargin = (messages: Message[], m: Message, i: number, u
 }
 
 export const isSameUser = (messages: Message[], m: Message, i: number): boolean => {
+    if (!m.sender || !messages[i-1]?.sender) return false;
     return i > 0 && messages[i-1].sender._id === m.sender._id;
 }

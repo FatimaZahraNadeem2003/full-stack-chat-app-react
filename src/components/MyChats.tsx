@@ -163,6 +163,10 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
           {chats ? (
             <Stack spacing={3} pb={2}> 
               {chats.map((chat: Chat) => {
+                if (!chat.users || chat.users.length === 0) {
+                  return null;
+                }
+                
                 const isSelected = selectedChat?._id === chat._id;
                 const unreadCount = getUnreadCount(chat);
 
@@ -214,7 +218,6 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
                           </Box>
                         )}
                       </Box>
-
                       {unreadCount > 0 && (
                          <Badge colorScheme="green" borderRadius="full" px={2}>
                            {unreadCount}
@@ -223,7 +226,8 @@ const MyChats: React.FC<MyChatsProps> = ({ fetchAgain }) => {
                     </Flex>
                   </Box>
                 )
-              })}
+              }).filter(Boolean)} 
+
             </Stack>
           ) : (
             <ChatLoading />
