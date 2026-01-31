@@ -14,7 +14,6 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 
-/* ================= INTERFACES ================= */
 
 interface User {
   _id: string;
@@ -48,7 +47,6 @@ interface MonitorChatProps {
   onClose: () => void;
 }
 
-/* ================= COMPONENT ================= */
 
 const MonitorChat: React.FC<MonitorChatProps> = ({
   selectedChat,
@@ -58,7 +56,6 @@ const MonitorChat: React.FC<MonitorChatProps> = ({
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
-  /* ================= ESC KEY CLOSE ================= */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -73,7 +70,6 @@ const MonitorChat: React.FC<MonitorChatProps> = ({
     };
   }, [onClose]);
 
-  /* ================= FETCH MESSAGES ================= */
   const fetchMessages = async () => {
     if (!selectedChat) return;
 
@@ -122,11 +118,9 @@ const MonitorChat: React.FC<MonitorChatProps> = ({
 
   if (!selectedChat) return null;
 
-  /* ================= UI ================= */
 
   return (
     <Box h="100%" display="flex" flexDirection="column">
-      {/* HEADER */}
       <Flex
         bg="white"
         p={3}
@@ -173,7 +167,6 @@ const MonitorChat: React.FC<MonitorChatProps> = ({
         </Button>
       </Flex>
 
-      {/* CHAT AREA */}
       <Box
         flex={1}
         overflowY="auto"
@@ -278,7 +271,6 @@ const MonitorChat: React.FC<MonitorChatProps> = ({
         )}
       </Box>
 
-      {/* FOOTER */}
       <Box
         mt={2}
         p={3}

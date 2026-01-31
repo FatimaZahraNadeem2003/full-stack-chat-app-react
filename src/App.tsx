@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import HomePage from "./pages/HomePage";
 import ChatPage from "./pages/ChatPage";
 import AdminLogin from "./pages/AdminLogin";
@@ -10,6 +11,7 @@ import './App.css'
 function App() {
   return (
     <div className="App">
+      <Toaster position="top-center" />
       <Router>
         <Switch>
           <Route path="/" component={HomePage} exact />

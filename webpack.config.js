@@ -3,11 +3,12 @@ module.exports = {
     ignored: [
       '**/node_modules/**',
       '**/.git/**',
-      'D:\\System Volume Information',
-      'C:\\System Volume Information',
+      '**/System Volume Information/**',
       '**/$RECYCLE.BIN/**',
       '**/Thumbs.db',
       '**/.DS_Store'
-    ]
+    ],
+    aggregateTimeout: 300,
+    poll: 1000
   }
 };
