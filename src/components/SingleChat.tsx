@@ -321,7 +321,10 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             flexDir='column'
             flex="1" 
             p={3}
-            bg='gray.50'
+            bgImage="linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('https://images.unsplash.com/photo-1515041219749-89347f83291a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')"
+            bgSize="cover"
+            bgPosition="center"
+            bgRepeat="no-repeat"
             overflowY='auto' 
             css={{
               '&::-webkit-scrollbar': { width: '5px' },

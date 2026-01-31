@@ -1,6 +1,7 @@
 import { ViewIcon } from '@chakra-ui/icons'
-import { Button, IconButton, Image, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useDisclosure, Box } from '@chakra-ui/react'
+import { Button, IconButton, Image, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useDisclosure, Box, VStack } from '@chakra-ui/react'
 import React from 'react'
+import ChangePasswordModal from './ChangePasswordModal'
 
 interface User {
   name: string;
@@ -77,15 +78,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({user, children}) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button 
-              colorScheme='blue' 
-              mr={3} 
-              onClick={onClose}
-              _hover={{ bg: "blue.500", transform: "scale(1.05)" }}
-              borderRadius="md"
-            >
-              Close
-            </Button>
+            <VStack spacing={3} w="100%">
+              <ChangePasswordModal user={user} />
+              <Button 
+                colorScheme='blue' 
+                onClick={onClose}
+                _hover={{ bg: "blue.500", transform: "scale(1.05)" }}
+                borderRadius="md"
+                w="100%"
+              >
+                Close
+              </Button>
+            </VStack>
           </ModalFooter>
         </ModalContent>
       </Modal>
