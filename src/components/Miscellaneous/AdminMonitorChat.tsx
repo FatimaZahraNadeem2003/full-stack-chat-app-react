@@ -74,7 +74,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+  const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}') || {};
 
   const fetchMessages = async () => {
     if (!selectedChat) return;
@@ -104,7 +104,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
     if (!selectedChat || (!newMessage.trim() && !fileUrl) || isSending) return;
     
     // Check if admin is allowed to send message
-    const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo._id;
+    const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo?._id;
     
     // Admin can only send messages in groups where they are the admin, not in personal chats
     if (!selectedChat.isGroupChat || !isAdminGroupAdmin) {
