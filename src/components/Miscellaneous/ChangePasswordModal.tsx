@@ -85,7 +85,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ user, childre
         position: 'bottom'
       })
 
-      // Reset form
       setOldPassword('')
       setNewPassword('')
       setConfirmPassword('')

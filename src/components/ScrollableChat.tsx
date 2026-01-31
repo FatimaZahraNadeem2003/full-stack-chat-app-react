@@ -301,7 +301,7 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
                         mt={1}
                         userSelect="none"
                       >
-                        12:00 PM
+                        {m.createdAt ? formatDate(m.createdAt) : 'Just now'}
                       </Text>
                     </VStack>
                     
@@ -399,5 +399,29 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
     </Box>
   )
 }
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffInDays === 0) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  
+  if (diffInDays === 1) {
+    return `Yesterday at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  }
+  
+  if (diffInDays < 7) {
+    return `${date.toLocaleDateString('en-US', { weekday: 'long' })} at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  }
+  
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  }) + ' at ' + date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+};
 
 export default ScrollableChat;

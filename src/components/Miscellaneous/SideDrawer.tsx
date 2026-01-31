@@ -44,6 +44,7 @@ import axios from 'axios';
 import ChatLoading from '../ChatLoading';
 import UserListItem from '../UserAvatar/UserListItem';
 import NotificationBadge from './NotificationBadge';
+import ChangePasswordModal from './ChangePasswordModal';
 
 const SideDrawer: React.FC = () => {
   const [search, setSearch] = useState<string>("");
@@ -438,12 +439,16 @@ const SideDrawer: React.FC = () => {
                 </Button>
               </>
             ) : (
-              <Button 
-                colorScheme='blue' 
-                onClick={profileModalDisclosure.onClose}
-              >
-                Close
-              </Button>
+              <Flex direction="column" w="100%" gap={3}>
+                <ChangePasswordModal user={user} />
+                <Button 
+                  colorScheme='blue' 
+                  onClick={profileModalDisclosure.onClose}
+                  w="100%"
+                >
+                  Close
+                </Button>
+              </Flex>
             )}
           </ModalFooter>
         </ModalContent>

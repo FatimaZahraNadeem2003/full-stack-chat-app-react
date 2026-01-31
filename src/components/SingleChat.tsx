@@ -371,7 +371,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                   {uploading ? (
                     <Flex alignItems="center" gap={2}>
                       <Spinner size="sm" />
-                      {/* <Text fontSize="sm">sending...</Text> */}
+                       <Text fontSize="sm">sending...</Text> 
                     </Flex>
                   ) : (
                     <>

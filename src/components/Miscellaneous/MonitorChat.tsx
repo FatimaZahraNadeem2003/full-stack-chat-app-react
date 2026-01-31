@@ -99,7 +99,6 @@ const MonitorChat: React.FC<MonitorChatProps> = ({ selectedChat, onClose }) => {
     if (chat.isGroupChat) {
       return sender.name;
     } else {
-      // For personal chats, return the name of the other person
       const otherUser = chat.users.find(user => user._id !== sender._id);
       return otherUser ? otherUser.name : sender.name;
     }
