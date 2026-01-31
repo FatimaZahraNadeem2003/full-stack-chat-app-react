@@ -163,7 +163,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           
           {isUploading && (
             <Box mt={2}>
-              <Text fontSize="sm" color="teal.600">Uploading...</Text>
+              <Text fontSize="sm" color="teal.600">sending...</Text>
               <Progress value={uploadProgress} size="sm" colorScheme="teal" mt={1} />
             </Box>
           )}

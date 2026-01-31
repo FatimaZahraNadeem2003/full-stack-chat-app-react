@@ -1,5 +1,4 @@
 import {createContext,useContext, useEffect, useState, ReactNode} from 'react'
-import { useHistory } from 'react-router-dom';
 
 export interface User {
   _id: string;
@@ -25,6 +24,7 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   fileType?: string;
+  isUploading?: boolean;
 }
 
 interface ChatContextType {
@@ -47,7 +47,6 @@ interface ChatProviderProps {
 const ChatProvider: React.FC<ChatProviderProps> = ({children}) => {
 
     const [user, setUser] = useState<User | null>(null);
-    const history = useHistory();
     const [selectedChat, setSelectedChat] = useState<Chat | string | null>(null);
     const [chats, setChats] = useState<Chat[]>([]);
     const [notification, setNotification] = useState<any[]>([])
@@ -56,12 +55,8 @@ const ChatProvider: React.FC<ChatProviderProps> = ({children}) => {
       const userInfo = JSON.parse(localStorage.getItem("userInfo") || 'null');
       setUser(userInfo);
       console.log(userInfo);
-
-      if(!userInfo){
-        history.push("/");
-      }
       
-    },[history]);
+    },[]);
 
     useEffect(() => {
       const handleStorageChange = () => {

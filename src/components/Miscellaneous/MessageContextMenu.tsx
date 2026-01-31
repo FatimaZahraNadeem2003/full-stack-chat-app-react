@@ -124,13 +124,13 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         border="1px solid"
         borderColor="gray.200"
       >
-        <MenuItem 
+        {/* <MenuItem 
           icon={<RepeatIcon />} 
           onClick={handleTagMessage}
           _hover={{ bg: 'blue.50' }}
         >
           <Text fontSize="sm">Reply to message</Text>
-        </MenuItem>
+        </MenuItem> */}
         
         <MenuItem 
           icon={<DeleteIcon />} 

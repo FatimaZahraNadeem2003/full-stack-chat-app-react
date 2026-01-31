@@ -27,6 +27,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const defaultOptions = {
     loop: true,
@@ -209,6 +210,21 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   const sendFileMessage = async () => {
     if (!selectedFile || !selectedChat) return;
     
+    setUploading(true);
+    
+    const tempMessageId = `temp-${Date.now()}`;
+    const tempMessage: Message = {
+      _id: tempMessageId,
+      sender: user as User,
+      content: selectedFile.name,
+      chat: selectedChat as any,
+      fileType: selectedFile.type,
+      fileName: selectedFile.name,
+      isUploading: true,
+    };
+    
+    setMessages(prev => [...prev, tempMessage]);
+    
     try {
       console.log('Uploading file:', selectedFile.name, selectedFile.type);
       const fileUrl = await handleFileUpload(selectedFile);
@@ -232,7 +248,11 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
       const { data } = await axios.post<Message>('/api/message', messageData, config);
       console.log('Message sent successfully:', data);
       socket.emit('new message', data);
-      setMessages([...messages, data]);
+      
+      setMessages(prev => prev.map(msg => 
+        msg._id === tempMessageId ? data : msg
+      ));
+      
       setSelectedFile(null);
       
       if (fileInputRef.current) {
@@ -248,6 +268,10 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
         duration: 5000, 
         position: 'bottom' 
       });
+      
+      setMessages(prev => prev.filter(msg => msg._id !== tempMessageId));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -341,16 +365,26 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             {selectedFile && (
               <Box bg="blue.50" p={2} mb={2} borderRadius="md" border="1px solid" borderColor="blue.200">
                 <Flex justifyContent="space-between" alignItems="center">
-                  <Text fontSize="sm">
-                    <ViewIcon mr={2} /> {selectedFile.name}
-                  </Text>
-                  <IconButton 
-                    size="xs" 
-                    colorScheme="blue" 
-                    onClick={sendFileMessage}
-                    aria-label="Send file"
-                    icon={<ArrowBackIcon />}
-                  />
+                  {uploading ? (
+                    <Flex alignItems="center" gap={2}>
+                      <Spinner size="sm" />
+                      {/* <Text fontSize="sm">sending...</Text> */}
+                    </Flex>
+                  ) : (
+                    <>
+                      <Text fontSize="sm">
+                        <ViewIcon mr={2} /> {selectedFile.name}
+                      </Text>
+                      <IconButton 
+                        size="xs" 
+                        colorScheme="blue" 
+                        onClick={sendFileMessage}
+                        aria-label="Send file"
+                        icon={<ArrowBackIcon />}
+                        isDisabled={uploading}
+                      />
+                    </>
+                  )}
                 </Flex>
               </Box>
             )}

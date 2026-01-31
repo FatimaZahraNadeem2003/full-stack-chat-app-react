@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatState } from '../../Context/ChatProvider';
 import {
   Box,
@@ -9,9 +9,15 @@ import {
   Link,
   Icon,
   Button,
-  IconButton
+  IconButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  useDisclosure,
+  Spinner
 } from '@chakra-ui/react';
-import { FiDownload, FiImage, FiVideo, FiFile } from 'react-icons/fi';
+import { FiDownload, FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
 import { FaReply } from 'react-icons/fa';
 import './styles.css';
 
@@ -29,6 +35,7 @@ interface Message {
   fileType: string;
   createdAt: string;
   replyTo?: Message;
+  isUploading?: boolean;
 }
 
 interface ScrollableChatProps {
@@ -38,6 +45,8 @@ interface ScrollableChatProps {
 
 const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, onReply }) => {
   const { user } = ChatState();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedMedia, setSelectedMedia] = useState<{url: string, type: string} | null>(null);
 
   const isSameSender = (messages: Message[], m: Message, i: number, userId: string) => {
     return (
@@ -64,6 +73,20 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, onReply }) =>
     if (fileType.startsWith('image/')) return FiImage;
     if (fileType.startsWith('video/')) return FiVideo;
     return FiFile;
+  };
+
+  const openMediaModal = (url: string, type: string) => {
+    setSelectedMedia({ url, type });
+    onOpen();
+  };
+
+  const downloadMedia = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -118,23 +141,123 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, onReply }) =>
                 </Box>
               )}
 
-              {m.fileUrl && (
+              {m.isUploading ? (
+                <Box bg="gray.100" p={3} borderRadius="lg" mb={2}>
+                  <Flex align="center" gap={3}>
+                    <Spinner size="sm" />
+                    <Box>
+                      <Text fontSize="sm" fontWeight="500">Uploading {m.fileName || 'file'}...</Text>
+                      <Text fontSize="xs" color="gray.500">Please wait</Text>
+                    </Box>
+                  </Flex>
+                </Box>
+              ) : m.fileUrl && (
                 <Box mb={m.content ? 2 : 0}>
                   {m.fileType.startsWith('image/') ? (
-                    <Box>
-                      <Image src={m.fileUrl} borderRadius="md" maxH="300px" objectFit="cover" mb={1}/>
-                      <Link href={m.fileUrl} isExternal color="teal.600" fontSize="xs">Download Image</Link>
+                    <Box 
+                      position="relative" 
+                      borderRadius="lg" 
+                      overflow="hidden"
+                      cursor="pointer"
+                      onClick={() => openMediaModal(m.fileUrl, 'image')}
+                      _hover={{ opacity: 0.9 }}
+                      transition="opacity 0.2s"
+                    >
+                      <Image 
+                        src={m.fileUrl} 
+                        borderRadius="lg" 
+                        maxH="300px" 
+                        objectFit="cover" 
+                        w="100%"
+                        fallbackSrc="https://via.placeholder.com/300x200?text=Loading+Image..."
+                      />
+                      <Flex 
+                        position="absolute" 
+                        top={2} 
+                        right={2} 
+                        bg="blackAlpha.600" 
+                        borderRadius="full" 
+                        p={1}
+                      >
+                        <IconButton
+                          aria-label="Download image"
+                          icon={<FiDownload size={16} />}
+                          size="xs"
+                          color="white"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadMedia(m.fileUrl, m.fileName || 'image.jpg');
+                          }}
+                        />
+                      </Flex>
                     </Box>
                   ) : m.fileType.startsWith('video/') ? (
-                    <Box>
-                      <video src={m.fileUrl} controls style={{ maxWidth: '100%', borderRadius: '8px' }}/>
+                    <Box 
+                      position="relative" 
+                      borderRadius="lg" 
+                      overflow="hidden"
+                      bg="black"
+                    >
+                      <video 
+                        src={m.fileUrl} 
+                        controls 
+                        style={{ 
+                          width: '100%', 
+                          maxHeight: '300px',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Flex 
+                        position="absolute" 
+                        top={2} 
+                        right={2} 
+                        bg="blackAlpha.600" 
+                        borderRadius="full" 
+                        p={1}
+                      >
+                        <IconButton
+                          aria-label="Download video"
+                          icon={<FiDownload size={16} />}
+                          size="xs"
+                          color="white"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadMedia(m.fileUrl, m.fileName || 'video.mp4');
+                          }}
+                        />
+                      </Flex>
                     </Box>
                   ) : (
-                    <Box bg="gray.50" p={2} borderRadius="md" border="1px solid #eee">
-                       <Flex align="center" gap={2}>
-                          <Icon as={getFileIcon(m.fileType)} />
-                          <Text fontSize="xs" noOfLines={1}>{m.fileName}</Text>
-                       </Flex>
+                    <Box 
+                      bg="gray.50" 
+                      p={3} 
+                      borderRadius="lg" 
+                      border="1px solid" 
+                      borderColor="gray.200"
+                      _hover={{ bg: 'gray.100' }}
+                      cursor="pointer"
+                      onClick={() => downloadMedia(m.fileUrl, m.fileName || 'file')}
+                    >
+                      <Flex align="center" gap={3}>
+                        <Box 
+                          bg="blue.100" 
+                          p={2} 
+                          borderRadius="full"
+                        >
+                          <Icon as={getFileIcon(m.fileType)} color="blue.600" />
+                        </Box>
+                        <Box flex={1}>
+                          <Text fontSize="sm" fontWeight="500" noOfLines={1}>
+                            {m.fileName}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            {m.fileType.split('/')[1] || 'File'}
+                          </Text>
+                        </Box>
+                        <Icon as={FiDownload} color="gray.500" />
+                      </Flex>
                     </Box>
                   )}
                 </Box>
@@ -148,6 +271,82 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, onReply }) =>
             </Box>
           </Box>
         ))}
+      
+      <Modal isOpen={isOpen} onClose={onClose} size="full" isCentered>
+        <ModalOverlay bg="blackAlpha.900" />
+        <ModalContent 
+          bg="transparent" 
+          boxShadow="none" 
+          maxW="90vw" 
+          maxH="90vh"
+          position="relative"
+        >
+          <ModalBody p={0} display="flex" alignItems="center" justifyContent="center">
+            {selectedMedia?.type === 'image' && (
+              <Box position="relative" maxW="100%" maxH="100%">
+                <Image 
+                  src={selectedMedia.url} 
+                  maxW="100%" 
+                  maxH="80vh" 
+                  objectFit="contain"
+                  borderRadius="lg"
+                />
+                <IconButton
+                  position="absolute"
+                  top={4}
+                  right={4}
+                  aria-label="Close"
+                  icon={<FiX size={24} />}
+                  size="lg"
+                  color="white"
+                  bg="blackAlpha.600"
+                  _hover={{ bg: 'blackAlpha.800' }}
+                  onClick={onClose}
+                />
+                <IconButton
+                  position="absolute"
+                  bottom={4}
+                  right={4}
+                  aria-label="Download"
+                  icon={<FiDownload size={20} />}
+                  size="md"
+                  color="white"
+                  bg="blackAlpha.600"
+                  _hover={{ bg: 'blackAlpha.800' }}
+                  onClick={() => downloadMedia(selectedMedia.url, 'media.jpg')}
+                />
+              </Box>
+            )}
+            
+            {selectedMedia?.type === 'video' && (
+              <Box position="relative" maxW="100%" maxH="100%">
+                <video 
+                  src={selectedMedia.url} 
+                  controls 
+                  autoPlay
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '80vh',
+                    borderRadius: '12px'
+                  }}
+                />
+                <IconButton
+                  position="absolute"
+                  top={4}
+                  right={4}
+                  aria-label="Close"
+                  icon={<FiX size={24} />}
+                  size="lg"
+                  color="white"
+                  bg="blackAlpha.600"
+                  _hover={{ bg: 'blackAlpha.800' }}
+                  onClick={onClose}
+                />
+              </Box>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

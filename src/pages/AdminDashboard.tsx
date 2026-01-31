@@ -29,13 +29,15 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
-  VStack
+  VStack,
+  Container
 } from '@chakra-ui/react';
 import { ChatIcon } from '@chakra-ui/icons';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import UserChatViewer from '../components/Miscellaneous/UserChatViewer';
 import AdminChat from '../components/Miscellaneous/AdminChat';
+
 
 interface User { 
   _id: string; 
@@ -62,17 +64,17 @@ interface Message {
 }
 
 const StatCard = ({ title, value, color, icon }: { title: string; value: number; color: string; icon: string }) => (
-  <Card>
+  <Card shadow="sm" border="1px solid" borderColor="gray.100">
     <CardBody>
       <Stat>
-        <StatLabel display="flex" alignItems="center" gap={2}>
+        <StatLabel display="flex" alignItems="center" gap={2} fontSize="md" fontWeight="bold" color="gray.600">
           <span>{icon}</span>
           {title}
         </StatLabel>
-        <StatNumber color={`${color}.500`} fontSize="2xl">
+        <StatNumber color={`${color}.500`} fontSize="3xl" fontWeight="extrabold">
           {value}
         </StatNumber>
-        <StatHelpText>Current statistics</StatHelpText>
+        <StatHelpText mb={0}>Current statistics</StatHelpText>
       </Stat>
     </CardBody>
   </Card>
@@ -133,27 +135,6 @@ const AdminDashboard = () => {
     setShowAdminChat(true);
   };
 
-  if (selectedUserForChat) {
-    return (
-      <Box minH="100vh" bg="gray.50">
-        <UserChatViewer 
-          selectedUser={selectedUserForChat} 
-          onClose={() => setSelectedUserForChat(null)} 
-        />
-      </Box>
-    );
-  }
-
-  if (showAdminChat) {
-    return (
-      <Box minH="100vh" bg="gray.50">
-        <AdminChat 
-          onClose={() => setShowAdminChat(false)} 
-        />
-      </Box>
-    );
-  }
-
   if (loading) {
     return (
       <Box minH="100vh" w="100%" bg="#f8fafc" p={8}>
@@ -166,47 +147,76 @@ const AdminDashboard = () => {
     );
   }
 
+  if (selectedUserForChat) {
+    return (
+      <Box minH="100vh" w="100%" bg="gray.50">
+        <UserChatViewer 
+          selectedUser={selectedUserForChat} 
+          onClose={() => setSelectedUserForChat(null)} 
+        />
+      </Box>
+    );
+  }
+
+  if (showAdminChat) {
+    return (
+      <Box minH="100vh" w="100%" bg="gray.50">
+        <AdminChat 
+          onClose={() => setShowAdminChat(false)} 
+        />
+      </Box>
+    );
+  }
+
   return (
-    <Box minH="100vh" bg="gray.50" p={0}>
-      <Flex justify="space-between" align="center" mb={8} p={8} bg="white">
-        <Heading size="lg" color="teal.600">
+    <Box minH="100vh" w="100vw" bg="gray.50" overflowX="hidden">
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        p={6} 
+        bg="white" 
+        borderBottom="1px solid" 
+        borderColor="gray.200"
+        boxShadow="sm"
+        w="100%"
+      >
+        <Heading size="lg" color="teal.600" fontWeight="bold">
           Admin Dashboard
         </Heading>
         <Flex gap={3}>
-          <Button 
-            colorScheme="teal" 
-            leftIcon={<ChatIcon />}
-            onClick={handleOpenAdminChat}
-          >
-            Admin Chat
-          </Button>
-          <Button colorScheme="red" onClick={handleLogout}>
+          <Button colorScheme="red" variant="outline" onClick={handleLogout}>
             Logout
           </Button>
         </Flex>
       </Flex>
 
-      <Box p={8}>
+      <Box p={{ base: 4, md: 8 }} w="100%" maxW="100%">
+        
         <SimpleGrid columns={{ base: 1, md: 3 }} gap={8} mb={10}>
           <StatCard title="Total Users" value={users.length} icon="👥" color="blue" />
           <StatCard title="Active Chats" value={chats.length} icon="💬" color="teal" />
-          <StatCard title="Messages Today" 
-            value={chats.filter(chat => chat.latestMessage && new Date(chat.latestMessage.createdAt).toDateString() === new Date().toDateString()).length} 
-            icon="✉️" color="purple" 
+          <StatCard 
+            title="Messages Today" 
+            value={chats.filter(chat => 
+              chat.latestMessage && 
+              new Date(chat.latestMessage.createdAt).toDateString() === new Date().toDateString()
+            ).length} 
+            icon="✉️" 
+            color="purple" 
           />
         </SimpleGrid>
 
-        <Tabs variant="enclosed" colorScheme="teal">
-          <TabList>
-            <Tab>All Users</Tab>
-            <Tab>All Chats</Tab>
-            <Tab>Recent Activity</Tab>
+        <Tabs variant="line" colorScheme="teal" isLazy>
+          <TabList mb="1em" borderBottomWidth="2px">
+            <Tab fontWeight="bold" fontSize="lg">All Users</Tab>
+            <Tab fontWeight="bold" fontSize="lg">All Chats</Tab>
+            <Tab fontWeight="bold" fontSize="lg">Recent Activity</Tab>
           </TabList>
 
           <TabPanels>
-            <TabPanel>
-              <Card>
-                <CardHeader>
+            <TabPanel p={0}>
+              <Card variant="outline" boxShadow="sm" borderRadius="lg">
+                <CardHeader bg="gray.50" borderBottom="1px solid" borderColor="gray.100">
                   <Flex justify="space-between" align="center">
                     <Heading size="md">Registered Users</Heading>
                     <Button 
@@ -219,28 +229,30 @@ const AdminDashboard = () => {
                     </Button>
                   </Flex>
                 </CardHeader>
-                <CardBody>
+                <CardBody p={0} overflowX="auto">
                   <Table variant="simple">
-                    <Thead>
+                    <Thead bg="gray.50">
                       <Tr>
-                        <Th>User</Th>
-                        <Th>Email</Th>
-                        <Th>Status</Th>
-                        <Th>Actions</Th>
+                        <Th>USER</Th>
+                        <Th>EMAIL</Th>
+                        <Th>STATUS</Th>
+                        <Th>ACTIONS</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {users.map(user => (
-                        <Tr key={user._id}>
+                        <Tr key={user._id} _hover={{ bg: "gray.50" }}>
                           <Td>
                             <Flex align="center">
-                              <Avatar size="sm" src={user.pic} mr={3} />
-                              <Text fontWeight="medium">{user.name}</Text>
+                              <Avatar size="sm" src={user.pic} mr={3} border="1px solid" borderColor="gray.200" />
+                              <Text fontWeight="bold">{user.name}</Text>
                             </Flex>
                           </Td>
                           <Td>{user.email}</Td>
                           <Td>
-                            <Badge colorScheme="green">Active</Badge>
+                            <Badge colorScheme="green" variant="subtle" px={2} borderRadius="full">
+                              ACTIVE
+                            </Badge>
                           </Td>
                           <Td>
                             <Flex gap={2}>
@@ -251,10 +263,10 @@ const AdminDashboard = () => {
                               >
                                 View Chats
                               </Button>
-                              
                               <Button 
                                 size="sm" 
                                 colorScheme="red"
+                                variant="solid"
                                 onClick={() => handleTerminateUser(user._id, user.name)}
                               >
                                 Terminate
@@ -269,27 +281,27 @@ const AdminDashboard = () => {
               </Card>
             </TabPanel>
 
-            <TabPanel>
-              <Card>
-                <CardHeader>
-                  <Heading size="md">All Chats</Heading>
+            <TabPanel p={0}>
+              <Card variant="outline" boxShadow="sm">
+                <CardHeader bg="gray.50" borderBottom="1px solid" borderColor="gray.100">
+                  <Heading size="md">All Active Chats</Heading>
                 </CardHeader>
-                <CardBody>
+                <CardBody p={0} overflowX="auto">
                   <Table variant="simple">
-                    <Thead>
+                    <Thead bg="gray.50">
                       <Tr>
-                        <Th>Chat Name</Th>
-                        <Th>Participants</Th>
-                        <Th>Type</Th>
-                        <Th>Last Message</Th>
-                        <Th>Time</Th>
+                        <Th>CHAT NAME</Th>
+                        <Th>PARTICIPANTS</Th>
+                        <Th>TYPE</Th>
+                        <Th>LAST MESSAGE</Th>
+                        <Th>TIME</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {chats.map(chat => (
-                        <Tr key={chat._id}>
+                        <Tr key={chat._id} _hover={{ bg: "gray.50" }}>
                           <Td>
-                            <Text fontWeight="medium">
+                            <Text fontWeight="bold">
                               {chat.isGroupChat ? chat.chatName : 'Private Chat'}
                             </Text>
                           </Td>
@@ -299,33 +311,31 @@ const AdminDashboard = () => {
                                 <Avatar key={user._id} size="xs" name={user.name} src={user.pic} />
                               ))}
                               {chat.users.length > 3 && (
-                                <Badge>+{chat.users.length - 3}</Badge>
+                                <Badge borderRadius="full">+{chat.users.length - 3}</Badge>
                               )}
                             </Flex>
                           </Td>
-                          <Td><Badge variant="solid" colorScheme={chat.isGroupChat ? "purple" : "blue"}>{chat.isGroupChat ? "Group" : "Personal"}</Badge></Td>
                           <Td>
+                            <Badge variant="solid" colorScheme={chat.isGroupChat ? "purple" : "blue"}>
+                              {chat.isGroupChat ? "GROUP" : "PERSONAL"}
+                            </Badge>
+                          </Td>
+                          <Td maxW="200px">
                             {chat.latestMessage ? (
                               <Box>
-                                <Text fontSize="sm" fontWeight="medium">
-                                  {chat.latestMessage.sender.name}
+                                <Text fontSize="xs" fontWeight="bold" color="gray.700">
+                                  {chat.latestMessage.sender.name}:
                                 </Text>
-                                <Text fontSize="xs" color="gray.600" noOfLines={1}>
+                                <Text fontSize="xs" color="gray.600" isTruncated>
                                   {chat.latestMessage.content}
                                 </Text>
                               </Box>
                             ) : (
-                              <Text color="gray.500">No messages</Text>
+                              <Text color="gray.400" fontSize="xs">No messages yet</Text>
                             )}
                           </Td>
-                          <Td>
-                            {chat.latestMessage ? (
-                              <Text fontSize="sm">
-                                {formatDate(chat.latestMessage.createdAt)}
-                              </Text>
-                            ) : (
-                              <Text color="gray.500">-</Text>
-                            )}
+                          <Td fontSize="xs" color="gray.500">
+                            {chat.latestMessage ? formatDate(chat.latestMessage.createdAt) : '-'}
                           </Td>
                         </Tr>
                       ))}
@@ -335,54 +345,45 @@ const AdminDashboard = () => {
               </Card>
             </TabPanel>
 
-            <TabPanel>
-              <Card>
-                <CardHeader>
-                  <Heading size="md">Recent Messages</Heading>
+            <TabPanel p={0}>
+              <Card variant="outline" boxShadow="sm">
+                <CardHeader bg="gray.50" borderBottom="1px solid" borderColor="gray.100">
+                  <Heading size="md">Recent Messages Stream</Heading>
                 </CardHeader>
                 <CardBody>
-                  <Box maxH="500px" overflowY="auto">
-                    <VStack spacing={4} align="stretch" maxH="600px" overflowY="auto" pr={2}>
-                      {chats
-                        .filter(chat => chat.latestMessage)
-                        .sort((a, b) => new Date(b.latestMessage!.createdAt).getTime() - new Date(a.latestMessage!.createdAt).getTime())
-                        .slice(0, 20)
-                        .map(chat => (
-                          <Box 
-                            key={chat._id} 
-                            p={4} 
-                            borderWidth="1px" 
-                            borderRadius="lg"
-                            _hover={{ bg: "gray.50" }}
-                          >
-                            <Flex justify="space-between" mb={2}>
-                              <Text fontWeight="bold">
-                                {chat.isGroupChat ? chat.chatName : chat.users.map(u => u.name).join(' & ')}
-                              </Text>
-                              <Badge colorScheme={chat.isGroupChat ? "purple" : "blue"}>
-                                {chat.isGroupChat ? "Group" : "Private"}
-                              </Badge>
-                            </Flex>
-                            {chat.latestMessage && (
-                              <Box>
-                                <Flex align="center" mb={1}>
-                                  <Avatar size="xs" src={chat.latestMessage.sender.pic} mr={2} />
-                                  <Text fontSize="sm" fontWeight="medium">
-                                    {chat.latestMessage.sender.name}
-                                  </Text>
-                                  <Text fontSize="xs" color="gray.500" ml={2}>
-                                    {formatDate(chat.latestMessage.createdAt)}
-                                  </Text>
-                                </Flex>
-                                <Text fontSize="sm" bg="gray.100" p={2} borderRadius="md">
-                                  {chat.latestMessage.content}
-                                </Text>
-                              </Box>
-                            )}
-                          </Box>
-                        ))}
-                    </VStack>
-                  </Box>
+                  <VStack spacing={4} align="stretch" maxH="70vh" overflowY="auto" pr={2}>
+                    {chats
+                      .filter(chat => chat.latestMessage)
+                      .sort((a, b) => new Date(b.latestMessage!.createdAt).getTime() - new Date(a.latestMessage!.createdAt).getTime())
+                      .slice(0, 20)
+                      .map(chat => (
+                        <Box 
+                          key={chat._id} 
+                          p={4} 
+                          borderWidth="1px" 
+                          borderRadius="lg"
+                          bg="white"
+                          transition="all 0.2s"
+                          _hover={{ bg: "gray.50", shadow: "sm" }}
+                        >
+                          <Flex justify="space-between" mb={2} align="center">
+                            <Text fontWeight="bold" color="teal.700">
+                              {chat.isGroupChat ? `Group: ${chat.chatName}` : `Private: ${chat.users.map(u => u.name).join(' & ')}`}
+                            </Text>
+                            <Badge variant="outline" fontSize="2xs">
+                              {formatDate(chat.latestMessage!.createdAt)}
+                            </Badge>
+                          </Flex>
+                          <Flex align="center" gap={3}>
+                            <Avatar size="xs" src={chat.latestMessage!.sender.pic} />
+                            <Box flex="1" bg="gray.50" p={2} borderRadius="md" borderLeft="4px solid" borderColor="teal.400">
+                              <Text fontSize="sm" fontWeight="bold" mb={1}>{chat.latestMessage!.sender.name}</Text>
+                              <Text fontSize="sm" color="gray.700">{chat.latestMessage!.content}</Text>
+                            </Box>
+                          </Flex>
+                        </Box>
+                      ))}
+                  </VStack>
                 </CardBody>
               </Card>
             </TabPanel>

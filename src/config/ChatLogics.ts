@@ -22,6 +22,7 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   fileType?: string;
+  isUploading?: boolean;
 }
 
 export const getSender = (loggedUser: User | null, users: User[]): string => {

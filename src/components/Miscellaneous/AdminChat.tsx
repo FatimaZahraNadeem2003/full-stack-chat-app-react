@@ -22,6 +22,7 @@ import {
 import { CloseIcon, ChatIcon, AddIcon } from '@chakra-ui/icons';
 import axios from 'axios';
 import io from 'socket.io-client';
+import MonitorChat from './MonitorChat';
 
 interface User {
   _id: string;
@@ -59,6 +60,9 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<any>(null);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedUsersForGroup, setSelectedUsersForGroup] = useState<string[]>([]);
   const toast = useToast();
 
   const fetchUsers = async () => {
@@ -227,6 +231,68 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsersForGroup(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter(id => id !== userId);
+      } else {
+        return [...prev, userId];
+      }
+    });
+  };
+
+  const createGroupChat = async () => {
+    if (groupName.trim() === '' || selectedUsersForGroup.length < 2) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a group name and select at least 2 users',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+        position: 'bottom'
+      });
+      return;
+    }
+
+    try {
+      const config = {
+        headers: {
+          'Content-type': 'application/json',
+          Authorization: `Bearer ${JSON.parse(localStorage.getItem('adminInfo') || '{}').token}`
+        }
+      };
+
+      const { data } = await axios.post<Chat>('/api/chat/group', {
+        name: groupName,
+        users: JSON.stringify(selectedUsersForGroup)
+      }, config);
+
+      if (data) {
+        toast({
+          title: 'Group created',
+          description: 'Group created successfully',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+          position: 'bottom'
+        });
+        setCreatingGroup(false);
+        setGroupName('');
+        setSelectedUsersForGroup([]);
+        fetchChats();
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error creating group',
+        description: error.response?.data?.message || 'Failed to create group',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+        position: 'bottom'
+      });
+    }
+  };
+
   return (
     <Flex h="100vh" position="relative" p={0}>
       <Box w="300px" borderRight="1px" borderColor="gray.200" display="flex" flexDirection="column">
@@ -245,18 +311,35 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
         <Divider />
         
         <Box p={4} flex="1" overflowY="auto">
-          <Heading size="sm" mb={3}>Users</Heading>
-          {users && users.length > 0 ? (
-            users.map(user => {
-              if (!user || !user._id) return null;
-              
-              return (
+          <Flex justify="space-between" align="center" mb={3}>
+            <Heading size="sm">Users</Heading>
+            <Button 
+              size="xs" 
+              colorScheme="teal" 
+              leftIcon={<AddIcon />} 
+              onClick={() => setCreatingGroup(true)}
+            >
+              Create Group
+            </Button>
+          </Flex>
+          
+          {creatingGroup ? (
+            <Box mb={4}>
+              <Input
+                placeholder="Group Name"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                mb={3}
+              />
+              <Text fontSize="sm" fontWeight="bold" mb={2}>Select Users:</Text>
+              {users.filter(user => user._id !== JSON.parse(localStorage.getItem('adminInfo') || '{}')._id).map(user => (
                 <Card 
                   key={user._id} 
                   mb={2}
                   cursor="pointer"
-                  onClick={() => accessChat(user._id)}
-                  _hover={{ bg: "gray.50" }}
+                  onClick={() => toggleUserSelection(user._id)}
+                  bg={selectedUsersForGroup.includes(user._id) ? "teal.50" : "white"}
+                  border={selectedUsersForGroup.includes(user._id) ? "2px solid teal" : "1px solid gray"}
                 >
                   <CardBody p={3}>
                     <Flex align="center">
@@ -265,17 +348,69 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
                         <Text fontWeight="medium">{user.name}</Text>
                         <Text fontSize="sm" color="gray.600">{user.email}</Text>
                       </Box>
+                      <Badge 
+                        ml="auto" 
+                        colorScheme={selectedUsersForGroup.includes(user._id) ? "teal" : "gray"}
+                      >
+                        {selectedUsersForGroup.includes(user._id) ? "Selected" : "Select"}
+                      </Badge>
                     </Flex>
                   </CardBody>
                 </Card>
-              );
-            }).filter(Boolean)
+              ))}
+              <Flex mt={3} gap={2}>
+                <Button 
+                  size="sm" 
+                  colorScheme="teal" 
+                  onClick={createGroupChat}
+                  isDisabled={selectedUsersForGroup.length < 2}
+                >
+                  Create Group
+                </Button>
+                <Button 
+                  size="sm" 
+                  colorScheme="gray" 
+                  onClick={() => {
+                    setCreatingGroup(false);
+                    setGroupName('');
+                    setSelectedUsersForGroup([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Flex>
+            </Box>
           ) : (
-            <Text color="gray.500" textAlign="center" mt={4}>
-              No users available
-            </Text>
+            users && users.length > 0 ? (
+              users.map(user => {
+                if (!user || !user._id) return null;
+                
+                return (
+                  <Card 
+                    key={user._id} 
+                    mb={2}
+                    cursor="pointer"
+                    onClick={() => accessChat(user._id)}
+                    _hover={{ bg: "gray.50" }}
+                  >
+                    <CardBody p={3}>
+                      <Flex align="center">
+                        <Avatar size="sm" src={user.pic} mr={3} />
+                        <Box>
+                          <Text fontWeight="medium">{user.name}</Text>
+                          <Text fontSize="sm" color="gray.600">{user.email}</Text>
+                        </Box>
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                );
+              }).filter(Boolean)
+            ) : (
+              <Text color="gray.500" textAlign="center" mt={4}>
+                No users available
+              </Text>
+            )
           )}
-
         </Box>
         
         <Divider />
@@ -342,102 +477,7 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
 
       <Box flex={1} display="flex" flexDirection="column">
         {selectedChat ? (
-          <>
-            <Card mb={2}>
-              <CardBody>
-                <Flex justify="space-between" align="center">
-                  <Box>
-                    <Heading size="md" mb={1}>
-                      {selectedChat.isGroupChat ? selectedChat.chatName : selectedChat.users[0]?.name || 'Unknown User'}
-                    </Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      {selectedChat.users.length} participants
-                    </Text>
-                  </Box>
-                  <Button 
-                    colorScheme="red" 
-                    size="sm" 
-                    leftIcon={<CloseIcon />}
-                    onClick={() => setSelectedChat(null)}
-                  >
-                    Close Chat
-                  </Button>
-                </Flex>
-              </CardBody>
-            </Card>
-
-            <Card flex={1} overflow="hidden" mb={2}>
-              <CardBody p={0} display="flex" flexDirection="column" h="100%">
-                <Box flex={1} overflowY="auto" p={4}>
-                  {messages && messages.length > 0 ? (
-                    <>
-                      {messages.map((msg) => {
-                        if (!msg || !msg.sender || !msg.sender._id) return null;
-                        
-                        return (
-                          <Box 
-                            key={msg._id} 
-                            mb={4}
-                            display="flex"
-                            justifyContent={msg.sender._id === JSON.parse(localStorage.getItem('adminInfo') || '{}')._id ? "flex-end" : "flex-start"}
-                          >
-                            <Box
-                              maxW="70%"
-                              bg={msg.sender._id === JSON.parse(localStorage.getItem('adminInfo') || '{}')._id ? "teal.100" : "gray.100"}
-                              p={3}
-                              borderRadius={msg.sender._id === JSON.parse(localStorage.getItem('adminInfo') || '{}')._id ? "10px 10px 0 10px" : "10px 10px 10px 0"}
-                            >
-                              <Flex align="center" mb={1}>
-                                <Avatar size="xs" src={msg.sender.pic} mr={2} />
-                                <Text fontSize="sm" fontWeight="bold">
-                                  {msg.sender.name}
-                                </Text>
-                                <Text fontSize="xs" color="gray.500" ml={2}>
-                                  {formatDate(msg.createdAt)}
-                                </Text>
-                              </Flex>
-                              <Text fontSize="sm">{msg.content}</Text>
-                            </Box>
-                          </Box>
-                        );
-                      }).filter(Boolean)}
-                    </>
-                  ) : (
-                    <Text color="gray.500" textAlign="center" mt={8}>
-                      No messages in this chat
-                    </Text>
-                  )}
-                </Box>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody p={3}>
-                <InputGroup>
-                  <Input
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    borderRadius="full"
-                    bg="gray.50"
-                    _focus={{ bg: "white", borderColor: "teal.400" }}
-                  />
-                  <InputRightElement width="4.5rem">
-                    <Button 
-                      h="1.75rem" 
-                      size="sm" 
-                      colorScheme="teal"
-                      onClick={sendMessage}
-                      isDisabled={!newMessage.trim()}
-                    >
-                      Send
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-              </CardBody>
-            </Card>
-          </>
+          <MonitorChat selectedChat={selectedChat} onClose={() => setSelectedChat(null)} />
         ) : (
           <Flex align="center" justify="center" h="100%">
             <Box textAlign="center">

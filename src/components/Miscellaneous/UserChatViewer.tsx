@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react';
 import { CloseIcon, ChatIcon } from '@chakra-ui/icons';
 import axios from 'axios';
+import MonitorChat from './MonitorChat';
 
 interface User {
   _id: string;
@@ -161,75 +162,7 @@ const UserChatViewer: React.FC<UserChatViewerProps> = ({ selectedUser, onClose }
 
       <Box flex={1} p={4} display="flex" flexDirection="column">
         {selectedChat ? (
-          <Box h="100%" display="flex" flexDirection="column">
-            <Flex bg="white" p={3} borderRadius="lg" shadow="sm" align="center" mb={4} justify="space-between">
-              <HStack>
-                <Avatar size="sm" name={selectedChat.isGroupChat ? selectedChat.chatName : getSender(selectedUser, selectedChat.users)} />
-                <Box>
-                  <Heading size="xs">{selectedChat.isGroupChat ? selectedChat.chatName : getSender(selectedUser, selectedChat.users)}</Heading>
-                  <Text fontSize="10px" color="gray.500">{selectedChat.isGroupChat ? `${selectedChat.users.length} members` : 'Personal Chat'}</Text>
-                </Box>
-              </HStack>
-              <Button size="xs" colorScheme="red" variant="ghost" onClick={() => setSelectedChat(null)}>Exit</Button>
-            </Flex>
-
-            <Box flex={1} overflowY="auto" p={4} bgImage="url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')" bgRepeat="repeat" borderRadius="lg">
-              {chatMessages.map((msg) => {
-                if (!msg.sender) return null;
-                const isSentByTarget = msg.sender._id === selectedUser._id;
-                
-                return (
-                  <Flex key={msg._id} justify={isSentByTarget ? "flex-end" : "flex-start"} mb={3}>
-                    <Box
-                      maxW="75%"
-                      bg={isSentByTarget ? "#dcf8c6" : "white"}
-                      p={2}
-                      px={3}
-                      borderRadius="lg"
-                      boxShadow="sm"
-                      position="relative"
-                    >
-                      {msg.replyTo && (
-                        <Box
-                          bg="rgba(0,0,0,0.05)"
-                          p={2}
-                          mb={2}
-                          borderRadius="md"
-                          borderLeft="4px solid"
-                          borderColor="teal.500"
-                          fontSize="xs"
-                        >
-                          <Text fontWeight="bold" color="teal.700" fontSize="11px">
-                            {msg.replyTo.sender?.name}
-                          </Text>
-                          <Text noOfLines={1} color="gray.600">
-                            {msg.replyTo.content}
-                          </Text>
-                        </Box>
-                      )}
-
-                      {selectedChat.isGroupChat && !isSentByTarget && (
-                        <Text fontSize="xs" fontWeight="bold" color="purple.500" mb={1}>
-                          {msg.sender.name}
-                        </Text>
-                      )}
-
-                      <Box display="flex" alignItems="flex-end" flexWrap="wrap">
-                        <Text fontSize="sm" mr={2} pb={1}>{msg.content}</Text>
-                        <Text fontSize="9px" color="gray.500" ml="auto">
-                          {formatTime(msg.createdAt)}
-                        </Text>
-                      </Box>
-                    </Box>
-                  </Flex>
-                );
-              })}
-            </Box>
-            
-            <Box p={2} bg="white" borderBottomRadius="lg" textAlign="center">
-              <Text fontSize="xs" color="gray.400" fontStyle="italic">Monitoring Mode</Text>
-            </Box>
-          </Box>
+          <MonitorChat selectedChat={selectedChat} onClose={() => setSelectedChat(null)} />
         ) : (
           <Flex align="center" justify="center" h="100%" flexDir="column" color="gray.400">
             <ChatIcon boxSize={12} mb={4} />
