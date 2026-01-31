@@ -95,7 +95,7 @@ const UserChatViewer: React.FC<UserChatViewerProps> = ({ selectedUser, onClose }
           Authorization: `Bearer ${JSON.parse(localStorage.getItem('adminInfo') || '{}').token}`
         }
       };
-      const { data } = await axios.get<Message[]>(`/api/message/${chatId}`, config);
+      const { data } = await axios.get<Message[]>(`/api/admin/chat/${chatId}/messages`, config);
       setChatMessages(data);
     } catch (error: any) {
       toast({ title: 'Error fetching messages', status: 'error' });

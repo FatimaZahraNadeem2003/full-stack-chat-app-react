@@ -70,7 +70,7 @@ const MonitorChat: React.FC<MonitorChatProps> = ({ selectedChat, onClose }) => {
         }
       };
       
-      const { data } = await axios.get<Message[]>(`/api/message/${selectedChat._id}`, config);
+      const { data } = await axios.get<Message[]>(`/api/admin/chat/${selectedChat._id}/messages`, config);
       setChatMessages(data);
       setLoading(false);
     } catch (error: any) {
