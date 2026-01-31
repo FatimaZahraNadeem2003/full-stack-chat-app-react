@@ -18,7 +18,10 @@ export interface Message {
   sender: User;
   content: string;
   chat: Chat;
-  replyTo?: Message; 
+  replyTo?: Message;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
 }
 
 export const getSender = (loggedUser: User | null, users: User[]): string => {
@@ -28,10 +31,10 @@ export const getSender = (loggedUser: User | null, users: User[]): string => {
     return otherUser?.name || "Unknown User";
 }
 
-export const getSenderFull = (loggedUser: User, users: User[]): User | string => {
-    if (!users || users.length < 2) return "Unknown User";
+export const getSenderFull = (loggedUser: User | null, users: User[]): User | string => {
+    if (!users || users.length < 2 || !loggedUser) return "Unknown User";
     
-    const otherUser = users[0]._id === loggedUser._id ? users[1] : users[0];
+    const otherUser = users[0]?._id === loggedUser._id ? users[1] : users[0];
     return otherUser || "Unknown User";
 }
 

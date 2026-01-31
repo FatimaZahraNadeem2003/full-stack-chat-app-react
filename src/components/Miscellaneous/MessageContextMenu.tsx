@@ -29,7 +29,7 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
   const toast = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isMyMessage = message.sender._id === user._id;
+  const isMyMessage = user && message.sender._id === user._id;
 
   const handleDeleteForMe = async () => {
     try {
@@ -56,6 +56,17 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
   };
 
   const handleDeleteForEveryone = async () => {
+    if (!user) {
+      toast({
+        title: 'User not authenticated',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+        position: 'bottom'
+      });
+      return;
+    }
+    
     try {
       const config = {
         headers: {
@@ -113,13 +124,13 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         border="1px solid"
         borderColor="gray.200"
       >
-        {/* <MenuItem 
+        <MenuItem 
           icon={<RepeatIcon />} 
           onClick={handleTagMessage}
           _hover={{ bg: 'blue.50' }}
         >
           <Text fontSize="sm">Reply to message</Text>
-        </MenuItem> */}
+        </MenuItem>
         
         <MenuItem 
           icon={<DeleteIcon />} 

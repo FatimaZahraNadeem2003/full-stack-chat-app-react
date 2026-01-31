@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import ScrollableFeed from 'react-scrollable-feed'
 import { isSameUser, Message } from '../config/ChatLogics'
 import { ChatState } from './../Context/ChatProvider';
-import { Avatar, Tooltip, Box, Text, Flex, VStack } from '@chakra-ui/react';
+import { Avatar, Tooltip, Box, Text, Flex, VStack, IconButton, Icon } from '@chakra-ui/react';
+import { DownloadIcon } from '@chakra-ui/icons';
 import MessageContextMenu from './Miscellaneous/MessageContextMenu';
 import ReplyMessage from './Miscellaneous/ReplyMessage';
 
@@ -92,31 +93,77 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, setMessages }
                   wordBreak='break-word' 
                   position="relative"
                   w="fit-content" 
+                  border={m.replyTo ? "1px solid" : "none"}
+                  borderColor={m.replyTo ? "blue.100" : "transparent"}
                 >
                   <Flex alignItems="flex-start" gap={2}>
                     <VStack align="stretch" spacing={1} flex={1}>
+                      {m.replyTo && (
+                        <Text fontSize="10px" color="blue.500" fontWeight="500" mb={1}>
+                          ↳ This is a reply
+                        </Text>
+                      )}
                       {m.replyTo && m.replyTo.sender && (
                         <Box
-                          bg="blackAlpha.100" 
-                          borderLeft="3px solid"
-                          borderColor="blue.400"
-                          borderRadius="sm"
+                          bg="blue.50" 
+                          borderLeft="4px solid"
+                          borderColor="blue.500"
+                          borderRadius="md"
                           p={2}
-                          mb={1}
+                          mb={2}
                           maxW="100%"
+                          boxShadow="sm"
                         >
-                          <Text fontSize="10px" fontWeight="700" color="blue.600">
-                            {m.replyTo.sender.name}
-                          </Text>
-                          <Text fontSize="xs" color="gray.700" noOfLines={1}>
-                            {m.replyTo.content}
+                          <Flex alignItems="center" mb={1}>
+                            <Text fontSize="10px" fontWeight="700" color="blue.700" mr={2}>
+                              ↳ Replying to {m.replyTo.sender.name}:
+                            </Text>
+                          </Flex>
+                          <Text fontSize="xs" color="gray.700" noOfLines={2} fontStyle="italic">
+                            "{m.replyTo.content}"
                           </Text>
                         </Box>
                       )}
                       
-                      <Text fontSize="14px" lineHeight="short">
-                        {m.content}
-                      </Text>
+                      {m.fileUrl ? (
+                        <Box>
+                          <Flex alignItems="center" gap={2} mb={2}>
+                            <Box flex={1}>
+                              <Text fontSize="14px" fontWeight="medium">
+                                {m.fileName || m.content}
+                              </Text>
+                              <Text fontSize="12px" color="gray.500">
+                                {m.fileType || 'File'}
+                              </Text>
+                            </Box>
+                            <IconButton
+                              size="sm"
+                              colorScheme="teal"
+                              aria-label="Download file"
+                              icon={<DownloadIcon />}
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = m.fileUrl!;
+                                link.download = m.fileName || 'download';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                            />
+                          </Flex>
+                          {m.content && (
+                            <Text fontSize="14px" color="gray.700">
+                              {m.content}
+                            </Text>
+                          )}
+                        </Box>
+                      ) : (
+                        <>
+                          <Text fontSize="14px" lineHeight="short">
+                            {m.content}
+                          </Text>
+                        </>
+                      )}
                       
                       <Text 
                         fontSize="9px" 

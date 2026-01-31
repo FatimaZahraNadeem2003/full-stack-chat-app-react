@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ChatState } from '../Context/ChatProvider'
+import { ChatState, User, Chat, Message } from '../Context/ChatProvider'
 import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex, Avatar, InputGroup, InputRightElement } from '@chakra-ui/react';
 import { ArrowBackIcon, CloseIcon, ViewIcon } from '@chakra-ui/icons';
 import { getSender, getSenderFull } from './../config/ChatLogics';
@@ -10,28 +10,6 @@ import ScrollableChat from './ScrollableChat';
 import io from 'socket.io-client'
 import Lottie from 'react-lottie'
 import animationData from '../animations/typing.json'
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  pic: string;
-  token?: string; 
-}
-
-interface Chat {
-  _id: string;
-  isGroupChat: boolean;
-  users: User[];
-  chatName: string;
-}
-
-interface Message {
-  _id: string;
-  sender: User;
-  content: string;
-  chat: Chat;
-}
 
 interface SingleChatProps {
   fetchAgain: boolean;
@@ -106,9 +84,16 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     const handleMessageReceived = (newMessageRecieved: Message) => {
       console.log('New message received:', newMessageRecieved);
       if (!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
+        let notificationText;
+        if (newMessageRecieved.fileUrl) {
+          notificationText = `${newMessageRecieved.sender.name} has sent you a file: "${newMessageRecieved.fileName || newMessageRecieved.content}"`;
+        } else {
+          notificationText = `${newMessageRecieved.sender.name} has sent you a message: "${newMessageRecieved.content}"`;
+        }
+        
         const enhancedNotification = {
           ...newMessageRecieved,
-          notificationText: `${newMessageRecieved.sender.name} has sent you a message: "${newMessageRecieved.content}"`,
+          notificationText,
           timestamp: new Date().toISOString(),
           isRead: false
         };
@@ -289,14 +274,14 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             />
 
             <Box flex="1" ml={2}>
-              {!selectedChat.isGroupChat ? (
+              {selectedChat && typeof selectedChat !== 'string' && !selectedChat.isGroupChat ? (
                 <Text fontWeight="bold">{getSender(user, selectedChat.users)}</Text>
               ) : (
-                <Text fontWeight="bold">{selectedChat.chatName.toUpperCase()}</Text>
+                <Text fontWeight="bold">{typeof selectedChat !== 'string' && selectedChat.chatName.toUpperCase()}</Text>
               )}
             </Box>
 
-            {!selectedChat.isGroupChat ? (
+            {selectedChat && typeof selectedChat !== 'string' && !selectedChat.isGroupChat ? (
               <ProfileModal user={getSenderFull(user, selectedChat.users) as User} />
             ) : (
               <UpdateGroupChatModal
@@ -334,12 +319,22 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             )}
             
             {replyingTo && (
-              <Box bg="gray.100" borderLeft="4px solid" borderColor="teal.400" p={2} mb={2} borderRadius="md">
-                <Flex justifyContent="space-between" alignItems="center">
-                   <Text fontSize="xs" fontWeight="bold" color="teal.600">{replyingTo.sender.name}</Text>
-                   <CloseIcon fontSize="10px" cursor="pointer" onClick={clearReply} />
+              <Box 
+                bg="gray.100" 
+                borderLeft="4px solid" 
+                borderColor="teal.500" 
+                p={3} 
+                mb={3} 
+                borderRadius="lg" 
+                boxShadow="sm"
+                position="relative"
+                top={-10}
+              >
+                <Flex justifyContent="space-between" alignItems="flex-start" mb={1}>
+                   <Text fontSize="xs" fontWeight="bold" color="teal.700">Replying to {replyingTo.sender.name}</Text>
+                   <CloseIcon fontSize="12px" cursor="pointer" onClick={clearReply} color="gray.500" />
                 </Flex>
-                <Text fontSize="sm" noOfLines={1}>{replyingTo.content}</Text>
+                <Text fontSize="sm" color="gray.700" noOfLines={2}>{replyingTo.content}</Text>
               </Box>
             )}
 

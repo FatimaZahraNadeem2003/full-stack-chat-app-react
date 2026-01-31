@@ -1,13 +1,39 @@
 import {createContext,useContext, useEffect, useState, ReactNode} from 'react'
 import { useHistory } from 'react-router-dom';
 
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  pic: string;
+  token?: string; 
+}
+
+export interface Chat {
+  _id: string;
+  isGroupChat: boolean;
+  users: User[];
+  chatName: string;
+}
+
+export interface Message {
+  _id: string;
+  sender: User;
+  content: string;
+  chat: Chat;
+  replyTo?: Message;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+}
+
 interface ChatContextType {
-  user: any;
-  setUser: React.Dispatch<React.SetStateAction<any>>;
-  selectedChat: any;
-  setSelectedChat: React.Dispatch<React.SetStateAction<any>>;
-  chats: any[];
-  setChats: React.Dispatch<React.SetStateAction<any[]>>;
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  selectedChat: Chat | string | null;
+  setSelectedChat: React.Dispatch<React.SetStateAction<Chat | string | null>>;
+  chats: Chat[];
+  setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
   notification: any[];
   setNotification: React.Dispatch<React.SetStateAction<any[]>>;
 }
@@ -20,10 +46,10 @@ interface ChatProviderProps {
 
 const ChatProvider: React.FC<ChatProviderProps> = ({children}) => {
 
-    const [user, setUser] = useState<any>();
+    const [user, setUser] = useState<User | null>(null);
     const history = useHistory();
-    const [selectedChat, setSelectedChat] = useState<any>();
-    const [chats, setChats] = useState<any[]>([]);
+    const [selectedChat, setSelectedChat] = useState<Chat | string | null>(null);
+    const [chats, setChats] = useState<Chat[]>([]);
     const [notification, setNotification] = useState<any[]>([])
 
     useEffect(()=>{

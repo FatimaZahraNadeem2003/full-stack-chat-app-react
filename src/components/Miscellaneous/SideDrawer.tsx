@@ -73,6 +73,17 @@ const SideDrawer: React.FC = () => {
   };
 
   const handleSaveChanges = async () => {
+    if (!user) {
+      toast({
+        title: 'User not authenticated',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setUpdating(false);
+      return;
+    }
+    
     setUpdating(true);
     try {
       const config = {
@@ -130,6 +141,17 @@ const SideDrawer: React.FC = () => {
 
     try {
       setLoading(true);
+      if (!user) {
+        toast({
+          title: 'User not authenticated',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+          position: 'bottom-left',
+        });
+        return;
+      }
+      
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.get(`/api/user?search=${search}`, config);
       setLoading(false);
@@ -148,6 +170,16 @@ const SideDrawer: React.FC = () => {
   };
 
   const accessChat = async (userId: string) => {
+    if (!user) {
+      toast({
+        title: 'User not authenticated',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
     try {
       setLoadingChat(true);
       const config = {
@@ -222,7 +254,7 @@ const SideDrawer: React.FC = () => {
               variant="ghost"
               _hover={{ bg: "gray.200" }}
             >
-              <Avatar size="sm" cursor="pointer" name={user.name} src={user.pic} />
+              <Avatar size="sm" cursor="pointer" name={user?.name || 'User'} src={user?.pic || ''} />
             </MenuButton>
             <Portal>
               <MenuList zIndex={9999}>

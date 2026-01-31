@@ -15,7 +15,7 @@ import React, { useState } from 'react'
 import { useToast } from '@chakra-ui/react'
 import axios from 'axios'
 import { useHistory } from 'react-router-dom'
-import { ChatState } from '../../Context/ChatProvider'
+import { ChatState, User } from '../../Context/ChatProvider'
 import {
   FaEnvelope,
   FaLock,
@@ -25,9 +25,7 @@ import {
   FaUserFriends,
 } from 'react-icons/fa'
 
-interface LoginResponse {
-  data: any
-}
+
 
 const Login: React.FC = () => {
   const [show, setShow] = useState(false)
@@ -64,7 +62,7 @@ const Login: React.FC = () => {
         },
       }
 
-      const { data } = await axios.post<LoginResponse>(
+      const { data } = await axios.post<User>(
         '/api/user/login',
         { email, password },
         config

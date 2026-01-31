@@ -1,23 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Badge, Menu, MenuButton, MenuList, MenuItem, Button, Box, Text, Avatar, Flex, VStack, Portal } from '@chakra-ui/react';
+import { Badge, Menu, MenuButton, MenuList, MenuItem, Button, Box, Text, Avatar, Flex, VStack, Portal, useToast } from '@chakra-ui/react';
 import { BellIcon } from '@chakra-ui/icons';
 import { ChatState } from '../../Context/ChatProvider';
+import axios from 'axios';
 
 interface NotificationBadgeProps {
   children?: React.ReactNode;
 }
 
 const NotificationBadge: React.FC<NotificationBadgeProps> = ({ children }) => {
-  const { notification, setNotification, setSelectedChat } = ChatState();
+  const { user, notification, setNotification, setSelectedChat } = ChatState();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   const handleMenuToggle = () => {
     setIsOpen(!isOpen);
   };
 
-  const clearNotifications = () => {
-    setNotification([]);
+  const clearNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      };
+      
+      await axios.put('/api/message/clear-notifications', {}, config);
+      
+      setNotification([]);
+      
+      toast({
+        title: 'Notifications cleared',
+        description: 'All notifications have been cleared successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error clearing notifications',
+        description: error.response?.data?.message || 'Failed to clear notifications',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   useEffect(() => {
