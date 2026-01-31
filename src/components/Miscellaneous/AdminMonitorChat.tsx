@@ -86,7 +86,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
         }
       };
 
-      const { data } = await axios.get<Message[]>(`/api/message/${selectedChat._id}`, config);
+      const { data } = await axios.get<Message[]>(`/api/admin/chat/${selectedChat._id}/messages`, config);
       setMessages(data);
     } catch (error: any) {
       toast({
@@ -102,6 +102,22 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
 
   const sendMessage = async (fileUrl?: string, fileName?: string, fileType?: string) => {
     if (!selectedChat || (!newMessage.trim() && !fileUrl) || isSending) return;
+    
+    // Check if admin is allowed to send message
+    const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo._id;
+    
+    // Admin can only send messages in groups where they are the admin, not in personal chats
+    if (!selectedChat.isGroupChat || !isAdminGroupAdmin) {
+      toast({
+        title: 'Permission denied',
+        description: 'Admin cannot send messages in personal chats or non-admin groups',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+        position: 'bottom'
+      });
+      return;
+    }
 
     setIsSending(true);
 
@@ -444,7 +460,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
 
       {selectedChat.isGroupChat && (
         <Box bg="orange.50" p={3} mb={2} borderRadius="md">
-          <Text fontSize="xs" fontWeight="bold" mb={2} color="orange.700">MONITORING MODE - Admin cannot manage group</Text>
+          <Text fontSize="xs" fontWeight="bold" mb={2} color="orange.700">GROUP MEMBERS</Text>
           <VStack spacing={1} align="stretch">
             {selectedChat.users.map(user => (
               <Flex key={user._id} justify="space-between" align="center" p={2} bg="white" borderRadius="md">

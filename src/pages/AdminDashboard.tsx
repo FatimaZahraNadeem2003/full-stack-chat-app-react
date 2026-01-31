@@ -93,9 +93,9 @@ const AdminDashboard = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [selectedUserForChat, setSelectedUserForChat] = useState<User | null>(null);
   const [showAdminChat, setShowAdminChat] = useState(false);
-  const [selectedChatForMessages, setSelectedChatForMessages] = useState<Chat | null>(null);
+
   const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [chatSearchTerm, setChatSearchTerm] = useState('');
+
   const toastChakra = useToast();
   const history = useHistory();
 
@@ -265,17 +265,6 @@ const AdminDashboard = () => {
     );
   }
 
-  if (selectedChatForMessages) {
-    return (
-      <Box minH="100vh" w="100%" bg="gray.50">
-        <MonitorChat
-          selectedChat={selectedChatForMessages}
-          onClose={() => setSelectedChatForMessages(null)}
-        />
-      </Box>
-    );
-  }
-
 
   return (
     <Box minH="100vh" w="100vw" bg="gray.50" overflowX="hidden">
@@ -291,9 +280,14 @@ const AdminDashboard = () => {
         <Heading size="lg" color="teal.600" fontWeight="bold">
           Admin Dashboard
         </Heading>
-        <Button colorScheme="red" variant="outline" onClick={handleLogout}>
-          Logout
-        </Button>
+        <Flex gap={3}>
+          <Button colorScheme="teal" onClick={() => setShowAdminChat(true)}>
+            New Chat
+          </Button>
+          <Button colorScheme="red" variant="outline" onClick={handleLogout}>
+            Logout
+          </Button>
+        </Flex>
       </Flex>
       
       <Box p={6}>
@@ -327,7 +321,6 @@ const AdminDashboard = () => {
         <Tabs isFitted variant="enclosed" mt={8}>
           <TabList mb="-px">
             <Tab>User Management</Tab>
-            <Tab>Chat Management</Tab>
           </TabList>
           <TabPanels>
             <TabPanel>
@@ -388,70 +381,6 @@ const AdminDashboard = () => {
                             </Td>
                           </Tr>
                         ))}
-                    </Tbody>
-                  </Table>
-                </CardBody>
-              </Card>
-            </TabPanel>
-            <TabPanel>
-              <Card>
-                <CardHeader>
-                  <Flex justify="space-between" align="center">
-                    <Heading size="md">Chats</Heading>
-                    <Input
-                      placeholder="Search chats..."
-                      w="300px"
-                      value={chatSearchTerm}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChatSearchTerm(e.target.value)}
-                    />
-                  </Flex>
-                </CardHeader>
-                <CardBody maxH="500px" overflowY="auto">
-                  <Table variant="simple">
-                    <Thead>
-                      <Tr>
-                        <Th>Chat Name</Th>
-                        <Th>Type</Th>
-                        <Th>Members</Th>
-                        <Th>Last Message</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {chats
-                        .filter(chat => 
-                          chat.chatName.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
-                          chat.users.some(user => 
-                            user.name.toLowerCase().includes(chatSearchTerm.toLowerCase())
-                          )
-                        )
-                        .map(chat => (
-                        <Tr key={chat._id}>
-                          <Td fontWeight="medium">{chat.chatName}</Td>
-                          <Td>
-                            <Badge colorScheme={chat.isGroupChat ? "purple" : "green"}>
-                              {chat.isGroupChat ? "Group" : "Direct"}
-                            </Badge>
-                          </Td>
-                          <Td>{chat.users.length}</Td>
-                          <Td>
-                            {chat.latestMessage 
-                              ? `${chat.latestMessage.content.substring(0, 30)}${chat.latestMessage.content.length > 30 ? '...' : ''}` 
-                              : 'No messages'}
-                          </Td>
-                          <Td>
-                            <Button 
-                              size="sm" 
-                              colorScheme="blue" 
-                              onClick={() => {
-                                setSelectedChatForMessages(chat);
-                              }}
-                            >
-                              View Messages
-                            </Button>
-                          </Td>
-                        </Tr>
-                      ))}
                     </Tbody>
                   </Table>
                 </CardBody>
