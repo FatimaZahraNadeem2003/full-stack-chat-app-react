@@ -82,7 +82,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${adminInfo.token}`
+          Authorization: `Bearer ${adminInfo?.token || ''}`
         }
       };
 
@@ -103,10 +103,8 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
   const sendMessage = async (fileUrl?: string, fileName?: string, fileType?: string) => {
     if (!selectedChat || (!newMessage.trim() && !fileUrl) || isSending) return;
     
-    // Check if admin is allowed to send message
     const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo?._id;
     
-    // Admin can only send messages in groups where they are the admin, not in personal chats
     if (!selectedChat.isGroupChat || !isAdminGroupAdmin) {
       toast({
         title: 'Permission denied',
@@ -316,7 +314,12 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
     const tempMessageId = `temp-${Date.now()}`;
     const tempMessage: Message = {
       _id: tempMessageId,
-      sender: adminInfo,
+      sender: {
+        _id: adminInfo._id || '',
+        name: adminInfo.name || 'Admin',
+        email: adminInfo.email || '',
+        pic: adminInfo.pic || '',
+      },
       content: selectedFile.name,
       chat: selectedChat as any,
       fileType: selectedFile.type,
@@ -361,7 +364,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo._id;
+  const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo?._id;
 
   if (!selectedChat) {
     return (
@@ -413,14 +416,14 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
         {messages.map((msg) => (
           <Flex
             key={msg._id}
-            justify={msg.sender._id === adminInfo._id ? 'flex-end' : 'flex-start'}
+            justify={msg.sender._id === adminInfo?._id ? 'flex-end' : 'flex-start'}
           >
             <Flex
               maxW="70%"
               p={3}
               borderRadius="lg"
-              bg={msg.sender._id === adminInfo._id ? 'teal.500' : 'white'}
-              color={msg.sender._id === adminInfo._id ? 'white' : 'black'}
+              bg={msg.sender._id === adminInfo?._id ? 'teal.500' : 'white'}
+              color={msg.sender._id === adminInfo?._id ? 'white' : 'black'}
               boxShadow="md"
             >
               <VStack spacing={1} align="stretch" w="100%">
@@ -440,7 +443,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
                       target="_blank" 
                       rel="noopener noreferrer"
                       style={{ 
-                        color: msg.sender._id === adminInfo._id ? 'white' : 'teal.500',
+                        color: msg.sender._id === adminInfo?._id ? 'white' : 'teal.500',
                         textDecoration: 'underline'
                       }}
                     >
