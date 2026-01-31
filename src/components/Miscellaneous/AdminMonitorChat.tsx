@@ -77,7 +77,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
   const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}') || {};
 
   const fetchMessages = async () => {
-    if (!selectedChat) return;
+    if (!selectedChat || !adminInfo?._id) return;
     
     try {
       const config = {
@@ -123,7 +123,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
       const config = {
         headers: {
           'Content-type': 'application/json',
-          Authorization: `Bearer ${adminInfo.token}`
+          Authorization: `Bearer ${adminInfo?.token || ''}`
         }
       };
 
@@ -162,7 +162,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
       const config = {
         headers: {
           'Content-type': 'application/json',
-          Authorization: `Bearer ${adminInfo.token}`
+          Authorization: `Bearer ${adminInfo?.token || ''}`
         }
       };
 
@@ -197,7 +197,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
       const config = {
         headers: {
           'Content-type': 'application/json',
-          Authorization: `Bearer ${adminInfo.token}`
+          Authorization: `Bearer ${adminInfo?.token || ''}`
         }
       };
 
@@ -232,7 +232,7 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
       const config = {
         headers: {
           'Content-type': 'application/json',
-          Authorization: `Bearer ${adminInfo.token}`
+          Authorization: `Bearer ${adminInfo?.token || ''}`
         }
       };
 
@@ -364,12 +364,20 @@ const AdminMonitorChat: React.FC<AdminMonitorChatProps> = ({ selectedChat, onClo
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isAdminGroupAdmin = selectedChat?.groupAdmin?._id === adminInfo?._id;
+  const isAdminGroupAdmin = selectedChat?.groupAdmin?._id && adminInfo?._id ? selectedChat?.groupAdmin?._id === adminInfo?._id : false;
 
   if (!selectedChat) {
     return (
       <Flex direction="column" h="100%" w="100%" align="center" justify="center">
         <Text>No chat selected</Text>
+      </Flex>
+    );
+  }
+
+  if (!adminInfo?._id) {
+    return (
+      <Flex direction="column" h="100%" w="100%" align="center" justify="center">
+        <Text>Admin not authenticated</Text>
       </Flex>
     );
   }
