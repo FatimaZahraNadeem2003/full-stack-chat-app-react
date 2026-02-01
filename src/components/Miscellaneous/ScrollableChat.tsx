@@ -6,9 +6,7 @@ import {
   Avatar,
   Flex,
   Image,
-  Link,
   Icon,
-  Button,
   IconButton,
   Modal,
   ModalOverlay,
@@ -18,7 +16,6 @@ import {
   Spinner
 } from '@chakra-ui/react';
 import { FiDownload, FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
-import { FaReply } from 'react-icons/fa';
 import './styles.css';
 
 interface Message {
@@ -90,7 +87,15 @@ const ScrollableChat: React.FC<ScrollableChatProps> = ({ messages, onReply }) =>
   };
 
   return (
-    <Box className="scrollable-chat" p={3}>
+    <Box 
+      className="scrollable-chat" 
+      p={3}
+      bgImage="url('/chat-bg.avif')"
+      bgSize="cover"
+      bgPosition="center"
+      bgRepeat="no-repeat"
+      minH="100%"
+    >
       {messages &&
         messages.map((m, i) => (
           <Box

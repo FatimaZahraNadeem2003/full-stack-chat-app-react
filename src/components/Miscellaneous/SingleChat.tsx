@@ -12,20 +12,22 @@ import io from 'socket.io-client';
 const ENDPOINT = "http://localhost:5000"; 
 let socket: any, selectedChatCompare: any;
 
-const SingleChat = ({ fetchAgain, setFetchAgain }: any) => {
+const SingleChat = ({ fetchAgain, setFetchAgain }: { fetchAgain: boolean; setFetchAgain: React.Dispatch<React.SetStateAction<boolean>> }) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [replyToMessage, setReplyToMessage] = useState<any>(null); 
   
   const { user, selectedChat, setSelectedChat } = ChatState();
+  const [adminUser, setAdminUser] = useState<any>(null);
   const toast = useToast();
 
   const fetchMessages = async () => {
     if (!selectedChat || typeof selectedChat === 'string') return;
     
     try {
-      const config = { headers: { Authorization: `Bearer ${user?.token}` } };
+      const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+      const config = { headers: { Authorization: `Bearer ${adminInfo.token}` } };
       setLoading(true);
       const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
       setMessages(data);
@@ -37,12 +39,13 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: any) => {
   };
 
   const sendMessage = async (event: any) => {
-    if (event.key === "Enter" && newMessage) {
+    if ((event.key === "Enter" || event.type === "click") && newMessage) {
       if (!selectedChat || typeof selectedChat === 'string') return;
 
       try {
+        const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
         const config = {
-          headers: { "Content-type": "application/json", Authorization: `Bearer ${user?.token}` },
+          headers: { "Content-type": "application/json", Authorization: `Bearer ${adminInfo.token}` },
         };
         const messagePayload = {
           content: newMessage,
@@ -61,8 +64,11 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: any) => {
   };
 
   useEffect(() => {
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    setAdminUser(adminInfo);
+    
     socket = io(ENDPOINT);
-    socket.emit("setup", user);
+    socket.emit("setup", adminInfo);
     socket.on("message received", (newMessageRecieved: any) => {
         if(!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
             
@@ -71,7 +77,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: any) => {
         }
     });
     return () => { socket.disconnect(); };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchMessages();
@@ -132,7 +138,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: any) => {
                     icon={<ChatIcon />} 
                     size="sm" 
                     variant="ghost" 
-                    onClick={() => sendMessage({key:"Enter"})} 
+                    onClick={() => sendMessage({type:"click"})} 
                    />
                 </InputRightElement>
               </InputGroup>

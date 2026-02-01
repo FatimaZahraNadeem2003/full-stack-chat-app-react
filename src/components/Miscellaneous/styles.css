@@ -1,0 +1,24 @@
+.messages{
+    display: flex;
+    flex-direction: column;
+    overflow-y: scroll;
+    scrollbar-width: none;
+}
+
+.message-container:hover .message-menu-button {
+    opacity: 1 !important;
+}
+
+.message-menu-button {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.chakra-menu__popper {
+    z-index: 9999 !important;
+}
+
+.notification-dropdown {
+    z-index: 9999 !important;
+    position: relative;
+}

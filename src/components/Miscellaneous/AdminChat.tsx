@@ -22,7 +22,7 @@ import {
 import { CloseIcon, ChatIcon, AddIcon } from '@chakra-ui/icons';
 import axios from 'axios';
 import io from 'socket.io-client';
-import MonitorChat from './MonitorChat';
+import SingleChat from './SingleChat';
 
 interface User {
   _id: string;
@@ -63,6 +63,7 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedUsersForGroup, setSelectedUsersForGroup] = useState<string[]>([]);
+  const [fetchAgain, setFetchAgain] = useState(false);
   const toast = useToast();
 
   const fetchUsers = async () => {
@@ -183,7 +184,7 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
       const { data } = await axios.post<Chat>('/api/chat', { userId }, config);
       if (data) {
         setSelectedChat(data);
-        fetchMessages(data._id);
+        setFetchAgain(!fetchAgain);
         fetchChats();
       }
     } catch (error: any) {
@@ -415,78 +416,37 @@ const AdminChat: React.FC<AdminChatProps> = ({ onClose }) => {
         
         <Divider />
         
-        <Box p={4} flex="1" overflowY="auto">
-          <Heading size="sm" mb={3}>Chats</Heading>
-          {loading ? (
-            <Box>
-              {[1, 2, 3].map(i => (
-                <Card key={i} mb={2}>
-                  <CardBody>
-                    <Skeleton height="20px" mb={2} />
-                    <SkeletonText mt="4" noOfLines={1} spacing="4" />
-                  </CardBody>
-                </Card>
-              ))}
-            </Box>
-          ) : chats && chats.length > 0 ? (
-            <>
-              {chats.map(chat => {
-                if (!chat || !chat._id) return null;
-                
-                return (
-                  <Card 
-                    key={chat._id} 
-                    mb={2}
-                    cursor="pointer"
-                    onClick={() => {
-                      setSelectedChat(chat);
-                      fetchMessages(chat._id);
-                    }}
-                    bg={selectedChat?._id === chat._id ? "teal.50" : "white"}
-                    border={selectedChat?._id === chat._id ? "2px solid" : "1px solid"}
-                    borderColor={selectedChat?._id === chat._id ? "teal.400" : "gray.200"}
-                  >
-                    <CardBody p={3}>
-                      <Text fontWeight="bold" mb={1} fontSize="sm">
-                        {chat.isGroupChat ? chat.chatName : chat.users?.[0]?.name || 'Unknown User'}
-                      </Text>
-                      {chat.latestMessage ? (
-                        <Box>
-                          <Text fontSize="xs" color="gray.600" noOfLines={1}>
-                            {chat.latestMessage.content}
-                          </Text>
-                          <Text fontSize="xs" color="gray.400" mt={1}>
-                            {formatDate(chat.latestMessage.createdAt)}
-                          </Text>
-                        </Box>
-                      ) : (
-                        <Text fontSize="xs" color="gray.500">No messages</Text>
-                      )}
-                    </CardBody>
-                  </Card>
-                );
-              }).filter(Boolean)}
-            </>
-          ) : (
-            <Text color="gray.500" textAlign="center" mt={4}>
-              No chats available
-            </Text>
-          )}
-        </Box>
+
       </Box>
 
       <Box flex={1} display="flex" flexDirection="column">
         {selectedChat ? (
-          <MonitorChat selectedChat={selectedChat} onClose={() => setSelectedChat(null)} />
+          <Box
+            display="flex"
+            flexDir="column"
+            flex={1}
+            w="100%"
+            h="100%"
+            bg="rgba(255, 255, 255, 0.1)"
+            backdropFilter="blur(12px)"
+            borderRadius="2xl"
+            borderWidth="1px"
+            borderColor="gray.200"
+            boxShadow="lg"
+            overflow="hidden"
+            m={4}
+          >
+            <SingleChat fetchAgain={fetchAgain} setFetchAgain={setFetchAgain} />
+          </Box>
         ) : (
           <Flex align="center" justify="center" h="100%">
             <Box textAlign="center">
               <ChatIcon boxSize={12} color="gray.300" mb={4} />
               <Text color="gray.500" fontSize="lg">
-                Select a user or chat to start messaging
+                Select a user to start messaging
               </Text>
               <Text color="gray.400" fontSize="sm">
-                Admin can chat with users and participate in group conversations
+                Admin can chat with users
               </Text>
             </Box>
           </Flex>
