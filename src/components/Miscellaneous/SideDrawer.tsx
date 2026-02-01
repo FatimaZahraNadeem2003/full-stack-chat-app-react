@@ -154,9 +154,25 @@ const SideDrawer: React.FC = () => {
       }
       
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`/api/user?search=${search}`, config);
+      
+      // Search for regular users
+      const usersResponse = await axios.get(`/api/user?search=${search}`, config);
+      
+      // Search for admin (hidden from users)
+      const adminResult: any[] = [];
+      try {
+        const adminResponse = await axios.get(`/api/user/search-admin?search=${search}`, config);
+        if (adminResponse.data) {
+          adminResult.push(adminResponse.data);
+        }
+      } catch (adminError) {
+        // Admin not found, continue with just users
+        console.log('Admin not found in search');
+      }
+      
+      const combinedResults = [...usersResponse.data, ...adminResult];
       setLoading(false);
-      setSearchResult(data);
+      setSearchResult(combinedResults);
     } catch (error) {
       toast({
         title: 'Error Occurred!',
