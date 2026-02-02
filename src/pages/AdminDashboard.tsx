@@ -230,9 +230,9 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <Box minH="100vh" w="100%" bg="#f8fafc" p={8}>
-        <Skeleton height="50px" mb={10} borderRadius="xl" />
-        <SimpleGrid columns={{ base: 1, md: 4 }} gap={6} mb={10}>
+      <Box minH="100vh" w="100%" bg="#f8fafc" p={{ base: 4, md: 8 }}>
+        <Skeleton height="50px" mb={6} borderRadius="xl" />
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={{ base: 3, md: 6 }} mb={{ base: 4, md: 10 }}>
           {[1, 2, 3, 4].map(i => (
             <Card key={i}>
               <CardBody>
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
             </Card>
           ))}
         </SimpleGrid>
-        <Skeleton height="400px" borderRadius="xl" />
+        <Skeleton height={{ base: '200px', md: '400px' }} borderRadius="xl" />
       </Box>
     );
   }
@@ -269,18 +269,20 @@ const AdminDashboard = () => {
   return (
     <Box minH="100vh" w="100vw" bg="gray.50" overflowX="hidden">
       <Flex
+        direction={{ base: 'column', md: 'row' }}
         justify="space-between"
         align="center"
-        p={6}
+        p={{ base: 4, md: 6 }}
         bg="white"
         borderBottom="1px solid"
         borderColor="gray.200"
         boxShadow="sm"
+        gap={{ base: 4, md: 0 }}
       >
-        <Heading size="lg" color="teal.600" fontWeight="bold">
+        <Heading size={{ base: 'md', md: 'lg' }} color="teal.600" fontWeight="bold">
           Admin Dashboard
         </Heading>
-        <Flex gap={3}>
+        <Flex gap={{ base: 2, md: 3 }} wrap="wrap" justify="center">
           <Button colorScheme="teal" onClick={() => setShowAdminChat(true)}>
             New Chat
           </Button>
@@ -290,8 +292,8 @@ const AdminDashboard = () => {
         </Flex>
       </Flex>
       
-      <Box p={6}>
-        <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
+      <Box p={{ base: 4, sm: 5, md: 6 }}>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={{ base: 3, sm: 4, md: 5, lg: 6 }} mb={{ base: 4, md: 8 }}>
           <StatCard 
             title="Total Users" 
             value={users.length} 
@@ -318,30 +320,30 @@ const AdminDashboard = () => {
           />
         </SimpleGrid>
         
-        <Tabs isFitted variant="enclosed" mt={8}>
+        <Tabs isFitted variant="enclosed" mt={{ base: 4, md: 8 }}>
           <TabList mb="-px">
             <Tab>User Management</Tab>
           </TabList>
           <TabPanels>
-            <TabPanel>
+            <TabPanel p={{ base: 2, md: 4 }}>
               <Card>
                 <CardHeader>
-                  <Flex justify="space-between" align="center">
-                    <Heading size="md">Users</Heading>
+                  <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" gap={{ base: 3, md: 0 }}>
+                    <Heading size="md" mb={{ base: 2, md: 0 }}>Users</Heading>
                     <Input
                       placeholder="Search users..."
-                      w="300px"
+                      w={{ base: '100%', md: '300px' }}
                       value={userSearchTerm}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearchTerm(e.target.value)}
                     />
                   </Flex>
                 </CardHeader>
-                <CardBody maxH="500px" overflowY="auto">
-                  <Table variant="simple">
+                <CardBody maxH={{ base: '300px', md: '500px' }} overflowY="auto">
+                  <Table variant="simple" size={{ base: 'sm', md: 'md' }}>
                     <Thead>
                       <Tr>
                         <Th>User</Th>
-                        <Th>Email</Th>
+                        <Th display={{ base: 'none', md: 'table-cell' }}>Email</Th>
                         <Th>Action</Th>
                       </Tr>
                     </Thead>
@@ -359,25 +361,28 @@ const AdminDashboard = () => {
                                 <Text fontWeight="medium">{user.name}</Text>
                               </Flex>
                             </Td>
-                            <Td>{user.email}</Td>
+                            <Td display={{ base: 'none', md: 'table-cell' }}>{user.email}</Td>
                             <Td>
-                              <Button 
-                                size="sm" 
-                                colorScheme="blue" 
-                                mr={2}
-                                onClick={() => {
-                                  setSelectedUserForChat(user);
-                                }}
-                              >
-                                View Chats
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                colorScheme="red" 
-                                onClick={() => handleTerminateUser(user._id, user.name)}
-                              >
-                                Terminate
-                              </Button>
+                              <Flex direction={{ base: 'column', md: 'row' }} gap={{ base: 2, md: 2 }}>
+                                <Button 
+                                  size={{ base: 'sm', md: 'sm' }}
+                                  colorScheme="blue" 
+                                  w={{ base: '100%', md: 'auto' }}
+                                  onClick={() => {
+                                    setSelectedUserForChat(user);
+                                  }}
+                                >
+                                  View Chats
+                                </Button>
+                                <Button 
+                                  size={{ base: 'sm', md: 'sm' }}
+                                  colorScheme="red" 
+                                  w={{ base: '100%', md: 'auto' }}
+                                  onClick={() => handleTerminateUser(user._id, user.name)}
+                                >
+                                  Terminate
+                                </Button>
+                              </Flex>
                             </Td>
                           </Tr>
                         ))}
@@ -385,6 +390,9 @@ const AdminDashboard = () => {
                   </Table>
                 </CardBody>
               </Card>
+              <Box overflowX="auto">
+                {/* Table content will be here */}
+              </Box>
             </TabPanel>
           </TabPanels>
         </Tabs>
