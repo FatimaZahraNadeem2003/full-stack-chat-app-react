@@ -385,7 +385,6 @@ const AdminDashboard = () => {
                               </Flex>
                             </Td>
                           </Tr>
-                          //testing
                         ))}
                     </Tbody>
                   </Table>
