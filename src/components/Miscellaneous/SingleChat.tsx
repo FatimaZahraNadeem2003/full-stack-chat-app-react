@@ -8,6 +8,7 @@ import { ChatState } from '../../Context/ChatProvider';
 import ScrollableChat from './ScrollableChat';
 import ReplyMessage from '../Miscellaneous/ReplyMessage';
 import io from 'socket.io-client';
+import EmojiPicker from './EmojiPicker'; // Import the EmojiPicker component
 
 const ENDPOINT = "http://localhost:5000"; 
 let socket: any, selectedChatCompare: any;
@@ -19,23 +20,87 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: { fetchAgain: boolean; setFet
   const [replyToMessage, setReplyToMessage] = useState<any>(null); 
   
   const { user, selectedChat, setSelectedChat } = ChatState();
-  const [adminUser, setAdminUser] = useState<any>(null);
   const toast = useToast();
 
   const fetchMessages = async () => {
-    if (!selectedChat || typeof selectedChat === 'string') return;
+    if (!selectedChat || typeof selectedChat === 'string') {
+      console.log('No valid selected chat, skipping message fetch');
+      return;
+    }
     
     try {
-      const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-      const config = { headers: { Authorization: `Bearer ${adminInfo.token}` } };
+      // Check for admin session first
+      const adminInfoRaw = localStorage.getItem('adminInfo');
+      const adminInfo = adminInfoRaw && adminInfoRaw !== 'null' ? JSON.parse(adminInfoRaw) : null;
+      
+      // Check for user session
+      const userInfoRaw = localStorage.getItem('userInfo');
+      const userInfo = userInfoRaw && userInfoRaw !== 'null' ? JSON.parse(userInfoRaw) : null;
+      
+      let token, endpoint;
+      if (adminInfo && adminInfo._id && adminInfo.token) {
+        // Admin mode
+        token = adminInfo.token;
+        endpoint = `/api/admin/message/${selectedChat._id}`;
+      } else if (userInfo && userInfo._id && userInfo.token) {
+        // User mode
+        token = userInfo.token;
+        endpoint = `/api/message/${selectedChat._id}`;
+      } else {
+        // No user logged in
+        console.log('No user logged in, cannot fetch messages');
+        toast({ title: "Please log in to continue", status: "warning" });
+        return;
+      }
+      
+      console.log('Fetching messages from endpoint:', endpoint);
+      console.log('Selected chat ID:', selectedChat._id);
+      console.log('Using token:', token ? 'Yes' : 'No');
+      
+      const config = { 
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000 // 10 second timeout
+      };
+      
       setLoading(true);
-      const { data } = await axios.get(`/api/message/${selectedChat._id}`, config);
+      const startTime = Date.now();
+      const { data } = await axios.get(endpoint, config);
+      const endTime = Date.now();
+      console.log(`Messages fetched in ${endTime - startTime}ms:`, data.length, 'messages');
       setMessages(data);
-      setLoading(false);
+    } catch (error: any) {
+      console.error('Error fetching messages:', error);
+      let errorMessage = "Failed to load messages";
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = "Request timed out - please check your connection";
+      } else if (error.response) {
+        errorMessage += `: ${error.response.status} - ${error.response.data.message || error.response.data.error || error.response.statusText}`;
+        // Check if it's a 404 (chat not found) or 403 (not authorized)
+        if (error.response.status === 404) {
+          errorMessage = "Chat not found";
+        } else if (error.response.status === 403) {
+          errorMessage = "Access denied - you are not authorized to view this chat";
+        }
+      } else if (error.request) {
+        errorMessage = 'Network error - unable to reach server';
+      } else {
+        errorMessage += `: ${error.message}`;
+      }
+      toast({ 
+        title: "Error Occured!", 
+        description: errorMessage, 
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setLoading(false); // Make sure loading is always set to false
       socket.emit("join chat", selectedChat._id);
-    } catch (error) {
-      toast({ title: "Error Occured!", status: "error" });
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
   };
 
   const sendMessage = async (event: any) => {
@@ -43,9 +108,32 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: { fetchAgain: boolean; setFet
       if (!selectedChat || typeof selectedChat === 'string') return;
 
       try {
-        const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+        // Check for admin session first
+        const adminInfoRaw = localStorage.getItem('adminInfo');
+        const adminInfo = adminInfoRaw && adminInfoRaw !== 'null' ? JSON.parse(adminInfoRaw) : null;
+        
+        // Check for user session
+        const userInfoRaw = localStorage.getItem('userInfo');
+        const userInfo = userInfoRaw && userInfoRaw !== 'null' ? JSON.parse(userInfoRaw) : null;
+        
+        let token, endpoint;
+        if (adminInfo && adminInfo._id && adminInfo.token) {
+          // Admin mode
+          token = adminInfo.token;
+          endpoint = "/api/admin/message";
+        } else if (userInfo && userInfo._id && userInfo.token) {
+          // User mode
+          token = userInfo.token;
+          endpoint = "/api/message";
+        } else {
+          // No user logged in
+          toast({ title: "Please log in to continue", status: "warning" });
+          return;
+        }
+        
         const config = {
-          headers: { "Content-type": "application/json", Authorization: `Bearer ${adminInfo.token}` },
+          headers: { "Content-type": "application/json", Authorization: `Bearer ${token}` },
+          timeout: 10000 // 10 second timeout
         };
         const messagePayload = {
           content: newMessage,
@@ -54,21 +142,55 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: { fetchAgain: boolean; setFet
         };
         setNewMessage("");
         setReplyToMessage(null); 
-        const { data } = await axios.post("/api/message", messagePayload, config);
+        const { data } = await axios.post(endpoint, messagePayload, config);
         socket.emit("new message", data);
         setMessages([...messages, data]);
-      } catch (error) {
-        toast({ title: "Failed to send", status: "error" });
+      } catch (error: any) {
+        console.error('Error sending message:', error);
+        let errorMessage = "Failed to send message";
+        if (error.code === 'ECONNABORTED') {
+          errorMessage = "Request timed out";
+        } else if (error.response) {
+          errorMessage += `: ${error.response.data.message || error.response.statusText}`;
+        } else if (error.request) {
+          errorMessage = 'Network error';
+        } else {
+          errorMessage += `: ${error.message}`;
+        }
+        toast({ 
+          title: "Send Failed", 
+          description: errorMessage, 
+          status: "error",
+          duration: 3000,
+          isClosable: true
+        });
       }
     }
   };
 
   useEffect(() => {
-    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-    setAdminUser(adminInfo);
+    // Check for admin session first
+    const adminInfoRaw = localStorage.getItem('adminInfo');
+    const adminInfo = adminInfoRaw && adminInfoRaw !== 'null' ? JSON.parse(adminInfoRaw) : null;
+    
+    // Check for user session
+    const userInfoRaw = localStorage.getItem('userInfo');
+    const userInfo = userInfoRaw && userInfoRaw !== 'null' ? JSON.parse(userInfoRaw) : null;
+    
+    let userData;
+    if (adminInfo && adminInfo._id && adminInfo.token) {
+      // Admin mode
+      userData = { ...adminInfo, isAdmin: true };
+    } else if (userInfo && userInfo._id && userInfo.token) {
+      // User mode
+      userData = userInfo;
+    } else {
+      // No user logged in
+      userData = {};
+    }
     
     socket = io(ENDPOINT);
-    socket.emit("setup", adminInfo);
+    socket.emit("setup", userData);
     socket.on("message received", (newMessageRecieved: any) => {
         if(!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
             
@@ -132,14 +254,17 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: { fetchAgain: boolean; setFet
                   borderRadius={replyToMessage ? "0 0 10px 10px" : "full"}
                   _focus={{ bg: "white" }}
                 />
-                <InputRightElement>
-                   <IconButton 
-                    aria-label="Send Message"
-                    icon={<ChatIcon />} 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => sendMessage({type:"click"})} 
-                   />
+                <InputRightElement width="4.5rem">
+                  <Flex alignItems="center" height="100%">
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                    <IconButton 
+                      aria-label="Send Message"
+                      icon={<ChatIcon />} 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => sendMessage({type:"click"})} 
+                     />
+                  </Flex>
                 </InputRightElement>
               </InputGroup>
             </FormControl>
