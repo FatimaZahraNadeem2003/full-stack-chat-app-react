@@ -155,10 +155,8 @@ const SideDrawer: React.FC = () => {
       
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
-      // Search for regular users
       const usersResponse = await axios.get(`/api/user?search=${search}`, config);
       
-      // Search for admin (hidden from users)
       const adminResult: any[] = [];
       try {
         const adminResponse = await axios.get(`/api/user/search-admin?search=${search}`, config);
@@ -166,7 +164,6 @@ const SideDrawer: React.FC = () => {
           adminResult.push(adminResponse.data);
         }
       } catch (adminError) {
-        // Admin not found, continue with just users
         console.log('Admin not found in search');
       }
       
