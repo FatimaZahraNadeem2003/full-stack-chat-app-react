@@ -101,7 +101,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             <Flex align="center">
               <IconButton display={{ base: 'flex', md: 'none' }} icon={<ArrowBackIcon />} onClick={() => setSelectedChat('')} mr={2} aria-label="Back" variant="ghost" />
               
-              {/* FIXED PIC ERROR HERE WITH 'as User' */}
               <Avatar 
                 size="sm" 
                 mr={3} 
