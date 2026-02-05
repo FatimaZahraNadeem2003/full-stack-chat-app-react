@@ -124,7 +124,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             )}
           </Flex>
 
-          {/* CHAT BACKGROUND WALLPAPER AREA */}
           <Box 
             flex="1" p={4} overflowY='auto' 
             bgImage="url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')"
