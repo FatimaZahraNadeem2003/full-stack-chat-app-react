@@ -34,7 +34,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
   const addEmoji = (emoji: string) => setNewMessage((prev) => prev + emoji);
 
-  // Type Casting to avoid 'string | Chat' errors
   const currentChat = selectedChat as Chat;
 
   const fetchMessages = async () => {
