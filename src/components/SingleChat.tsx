@@ -14,7 +14,6 @@ import {
   InputRightElement
 } from '@chakra-ui/react';
 import { Image } from '@chakra-ui/image';
-// CloseIcon ko @chakra-ui/icons se import kiya hai error fix karne ke liye
 import { ArrowBackIcon, AttachmentIcon, ViewIcon, CloseIcon } from '@chakra-ui/icons';
 import { IoSend } from 'react-icons/io5';
 import { getSender, getSenderFull } from "../config/ChatLogics";
@@ -52,7 +51,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     setNewMessage(prev => prev + emoji);
   };
 
-  // Utility function to format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -61,7 +59,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Update preview URL when selectedFile changes
   useEffect(() => {
     if (selectedFile && selectedFile.type.startsWith('image/')) {
       const url = URL.createObjectURL(selectedFile);
@@ -126,7 +123,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
         'Content-Type': 'multipart/form-data', 
         Authorization: `Bearer ${(user as User).token}` 
       },
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: (progressEvent: any) => {
         const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
         setUploadProgress(progress);
       }
