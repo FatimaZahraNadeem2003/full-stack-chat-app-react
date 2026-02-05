@@ -25,6 +25,7 @@ export interface Message {
   fileName?: string;
   fileType?: string;
   isUploading?: boolean;
+  createdAt?: string;
 }
 
 interface ChatContextType {
