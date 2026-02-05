@@ -40,6 +40,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   const [newMessage, setNewMessage] = useState<string>('');
   const [socketConnected, setSocketConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [currentUserTyping, setCurrentUserTyping] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -106,6 +107,8 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   useEffect(() => {
     fetchMessages();
     selectedChatCompare = selectedChat;
+    setIsTyping(false); 
+    setCurrentUserTyping(false); 
   }, [selectedChat]);
 
   useEffect(() => {
@@ -169,6 +172,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
         setNewMessage('');
         setSelectedFile(null);
         setUploading(false);
+        setCurrentUserTyping(false); 
       } catch (error) { 
         toast({ title: 'Error!', status: 'error' });
         setUploading(false);
@@ -196,8 +200,8 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                     <Text fontWeight="bold" fontSize="md" color="#111b21">
                       {currentChat.isGroupChat ? currentChat.chatName : getSender(user, currentChat.users)}
                     </Text>
-                    <Text fontSize="xs" color={isTyping ? "green.500" : "gray.500"}>
-                      {isTyping ? "typing..." : "online"}
+                    <Text fontSize="xs" color={(isTyping || currentUserTyping) ? "green.500" : "red.500"}>
+                      {(isTyping || currentUserTyping) ? "online" : "offline"}
                     </Text>
                 </Box>
              </Flex>
@@ -288,11 +292,17 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                      onChange={(e) => {
                         setNewMessage(e.target.value);
                         if(!socketConnected) return;
+                        if (!currentUserTyping) {
+                          setCurrentUserTyping(true);
+                        }
                         socket.emit('typing', { userId: (user as User)._id, chatId: currentChat._id });
                         let lastTypingTime = new Date().getTime();
                         setTimeout(() => {
                             let timeNow = new Date().getTime();
-                            if (timeNow - lastTypingTime >= 3000) socket.emit('stop typing', { userId: (user as User)._id, chatId: currentChat._id });
+                            if (timeNow - lastTypingTime >= 3000) {
+                              socket.emit('stop typing', { userId: (user as User)._id, chatId: currentChat._id });
+                              setCurrentUserTyping(false);
+                            }
                         }, 3000);
                      }}
                      onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
