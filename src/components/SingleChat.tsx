@@ -117,8 +117,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     const formData = new FormData();
     formData.append('file', file);
     
-    // Create config with progress tracking
-    const config = { 
+    const config: any = { 
       headers: { 
         'Content-Type': 'multipart/form-data', 
         Authorization: `Bearer ${(user as User).token}` 
@@ -131,10 +130,10 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     
     try {
       const response = await axios.post('/api/upload', formData, config);
-      setUploadProgress(null); // Reset progress after upload
+      setUploadProgress(null); 
       return response.data; 
     } catch (error) {
-      setUploadProgress(null); // Reset progress on error
+      setUploadProgress(null); 
       throw error;
     }
   };
@@ -173,7 +172,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     <Flex flexDir="column" h="100%" w="100%" bg="#efeae2" position="relative">
       {selectedChat && typeof selectedChat !== 'string' ? (
         <>
-          {/* HEADER SECTION */}
           <Flex 
             p={3} px={5} w='100%' alignItems='center' justifyContent='space-between' 
             bg="rgba(255, 255, 255, 0.9)" backdropFilter="blur(10px)" 
@@ -204,7 +202,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
              </Box>
           </Flex>
 
-          {/* CHAT BODY (WALLPAPER) */}
           <Box 
             flex="1" p={4} overflowY='auto' 
             bgImage="url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')"
@@ -223,7 +220,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             )}
           </Box>
 
-          {/* FILE PREVIEW CAPSULE */}
           {selectedFile && (
             <Box px={4} py={2} bg="white" borderTop="1px solid #e2e8f0">
                <Flex align="center" bg="#f0f2f5" p={3} borderRadius="15px" justify="space-between" boxShadow="inner">
@@ -270,7 +266,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             </Box>
           )}
 
-          {/* FOOTER INPUT BAR */}
           <Box p={3} bg="#f0f2f5">
              <Flex align="center" gap={3}>
                 <Box bg="white" borderRadius="30px" flex={1} display="flex" alignItems="center" px={3} boxShadow="sm" border="1px solid #e2e8f0">
@@ -328,7 +323,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
           </Box>
         </>
       ) : (
-        /* WELCOME SCREEN */
         <Flex align='center' justify='center' h='100%' bg="#f8f9fa" flexDir="column" textAlign="center">
             <Box p={10}>
                 <Avatar 

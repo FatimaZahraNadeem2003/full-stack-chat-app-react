@@ -36,7 +36,6 @@ const ScrollableChat = ({ messages }: any) => {
             borderWidth="1px"
             borderColor={m.sender._id === user?._id ? "#C7EBB3" : "#E2E2E2"}
           >
-            {/* FILE RENDERING LOGIC */}
             {m.fileUrl ? (
               <Box mb={2} position="relative">
                 {m.fileType?.startsWith("image/") ? (
