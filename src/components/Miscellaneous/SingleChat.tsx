@@ -142,7 +142,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             )}
           </Box>
 
-          {/* PREMIUM FOOTER - FLOATING CAPSULE */}
           <Box p={3} bg="#f0f2f5">
              <Flex align="center" gap={2}>
                 <Box bg="white" borderRadius="25px" flex={1} display="flex" alignItems="center" px={2} boxShadow="sm" border="1px solid #e2e8f0">
