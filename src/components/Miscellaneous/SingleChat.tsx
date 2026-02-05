@@ -188,7 +188,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
           </Box>
         </>
       ) : (
-        /* WELCOME SCREEN */
         <Flex align='center' justify='center' h='100%' bg="#f8f9fa" flexDir="column" textAlign="center">
             <Box p={10}>
                 <Avatar size="2xl" mb={6} bg="teal.500" icon={<IoSend color="white" size="40px" />} />
