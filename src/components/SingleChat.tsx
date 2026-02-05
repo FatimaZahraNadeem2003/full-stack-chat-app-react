@@ -91,8 +91,16 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     socket = io(ENDPOINT);
     socket.emit('setup', user);
     socket.on('connected', () => setSocketConnected(true));
-    socket.on('typing', () => setIsTyping(true));
-    socket.on('stop typing', () => setIsTyping(false));
+    socket.on('typing', (typingData: { userId: string, chatId: string }) => {
+      if (typingData.userId !== (user as User)._id && typingData.chatId === currentChat._id) {
+        setIsTyping(true);
+      }
+    });
+    socket.on('stop typing', (typingData: { userId: string, chatId: string }) => {
+      if (typingData.userId !== (user as User)._id && typingData.chatId === currentChat._id) {
+        setIsTyping(false);
+      }
+    });
   }, [])
 
   useEffect(() => {
@@ -140,7 +148,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
   const sendMessage = async () => {
     if ((newMessage.trim() || selectedFile) && currentChat) {
-      socket.emit('stop typing', currentChat._id);
+      socket.emit('stop typing', { userId: (user as User)._id, chatId: currentChat._id });
       try {
         setUploading(true);
         let fileData = { fileUrl: "", fileType: "", fileName: "" };
@@ -280,11 +288,11 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                      onChange={(e) => {
                         setNewMessage(e.target.value);
                         if(!socketConnected) return;
-                        socket.emit('typing', currentChat._id);
+                        socket.emit('typing', { userId: (user as User)._id, chatId: currentChat._id });
                         let lastTypingTime = new Date().getTime();
                         setTimeout(() => {
                             let timeNow = new Date().getTime();
-                            if (timeNow - lastTypingTime >= 3000) socket.emit('stop typing', currentChat._id);
+                            if (timeNow - lastTypingTime >= 3000) socket.emit('stop typing', { userId: (user as User)._id, chatId: currentChat._id });
                         }, 3000);
                      }}
                      onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
@@ -303,7 +311,12 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                 
                 <IconButton
                   colorScheme="teal"
-                  icon={uploading ? <Spinner size="sm" color="white" /> : <IoSend size="22px" color="white" />}
+                  icon={uploading ? (uploadProgress !== null && uploadProgress < 100 ? (
+                    <Flex direction="column" alignItems="center">
+                      <Spinner size="sm" color="white" />
+                      <Text fontSize="xs" color="white" mt={1}>{uploadProgress}%</Text>
+                    </Flex>
+                  ) : <Spinner size="sm" color="white" />) : <IoSend size="22px" color="white" />}
                   borderRadius="full"
                   onClick={sendMessage}
                   h="50px" w="50px"
