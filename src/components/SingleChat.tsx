@@ -113,7 +113,10 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      console.log("Key pressed:", event.key, "Selected chat:", selectedChat);
       if (event.key === "Escape" && selectedChat) {
+        console.log("Closing chat with Escape key");
+        event.preventDefault();
         setSelectedChat('');
       }
     };
