@@ -1,10 +1,11 @@
 import React from 'react';
 import ScrollableFeed from 'react-scrollable-feed';
-import { ChatState } from "../Context/ChatProvider";
+import { ChatState, Message } from "../Context/ChatProvider";
 import { Box, Text, Flex, Avatar, Tooltip, Image, Icon, IconButton } from '@chakra-ui/react';
 import { DownloadIcon } from '@chakra-ui/icons';
+import MessageContextMenu from './Miscellaneous/MessageContextMenu';
 
-const ScrollableChat = ({ messages }: any) => {
+const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[]; setMessages: React.Dispatch<React.SetStateAction<Message[]>>; onReply: (message: Message) => void; }) => {
   const { user } = ChatState();
 
   const downloadFile = (url: string, fileName: string) => {
@@ -19,7 +20,7 @@ const ScrollableChat = ({ messages }: any) => {
 
   return (
     <ScrollableFeed>
-      {messages && messages.map((m: any, i: number) => (
+      {messages && messages.map((m: Message, i: number) => (
         <Flex key={m._id} w="100%" mt={2} justify={m.sender._id === user?._id ? "flex-end" : "flex-start"}>
           {m.sender._id !== user?._id && (
             <Tooltip label={m.sender.name} placement="bottom-start" hasArrow>
@@ -35,7 +36,31 @@ const ScrollableChat = ({ messages }: any) => {
             position="relative"
             borderWidth="1px"
             borderColor={m.sender._id === user?._id ? "#C7EBB3" : "#E2E2E2"}
+            _groupHover={{ bg: m.sender._id === user?._id ? "#C7EBB3" : "#F0F0F0" }}
+            transition="background-color 0.2s"
+            sx={{
+              "&:hover .message-menu": {
+                opacity: 1,
+              }
+            }}
           >
+            <Flex
+              position="absolute"
+              top={1}
+              right={m.sender._id === user?._id ? 1 : "auto"}
+              left={m.sender._id !== user?._id ? 1 : "auto"}
+              className="message-menu"
+              opacity={0}
+              transition="opacity 0.2s"
+              zIndex={10}
+            >
+              <MessageContextMenu 
+                message={m} 
+                onReply={onReply}
+                messages={messages}
+                setMessages={setMessages}
+              />
+            </Flex>
             {m.fileUrl ? (
               <Box mb={2} position="relative">
                 {m.fileType?.startsWith("image/") ? (

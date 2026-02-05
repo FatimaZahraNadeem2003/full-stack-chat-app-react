@@ -1,56 +1,51 @@
 import React from 'react';
-import { Box, Text, Flex, Avatar, IconButton } from '@chakra-ui/react';
-import { CloseIcon } from '@chakra-ui/icons';
+import {
+  Box,
+  Flex,
+  Text,
+  Avatar,
+  IconButton,
+} from '@chakra-ui/react';
+import { SmallCloseIcon } from '@chakra-ui/icons';
+import { Message } from '../../Context/ChatProvider';
 
 interface ReplyMessageProps {
-  message: any;
-  onClose: () => void;
+  replyingTo: Message | null;
+  onCancelReply: () => void;
 }
 
-const ReplyMessage: React.FC<ReplyMessageProps> = ({ message, onClose }) => {
-  if (!message) return null;
+const ReplyMessage: React.FC<ReplyMessageProps> = ({ replyingTo, onCancelReply }) => {
+  if (!replyingTo) return null;
 
   return (
-    <Box
-      bg="gray.100"
-      borderLeft="3px solid"
-      borderColor="blue.400"
-      borderRadius="md"
-      p={3}
+    <Box 
+      bg="blue.50" 
+      p={3} 
+      borderRadius="lg" 
       mb={2}
+      borderLeft="3px solid" 
+      borderLeftColor="blue.400"
       position="relative"
     >
-      <Flex alignItems="flex-start" justifyContent="space-between">
-        <Flex alignItems="flex-start" flex={1}>
-          <Avatar 
-            size="xs" 
-            name={message.sender.name} 
-            src={message.sender.pic} 
-            mr={2}
-            mt={1}
-          />
-          <Box flex={1}>
-            <Text fontSize="xs" fontWeight="600" color="blue.600" mb={1}>
-              {message.sender.name}
+      <Flex align="center" justify="space-between">
+        <Flex align="center" flex={1}>
+          <Avatar size="xs" src={replyingTo.sender.pic} name={replyingTo.sender.name} mr={2} />
+          <Box flex={1} overflow="hidden">
+            <Text fontSize="xs" fontWeight="bold" color="blue.600" noOfLines={1}>
+              {replyingTo.sender.name}
             </Text>
-            <Text 
-              fontSize="sm" 
-              color="gray.800" 
-              noOfLines={2}
-              wordBreak="break-word"
-            >
-              {message.content}
+            <Text fontSize="sm" color="gray.700" noOfLines={1}>
+              {replyingTo.content}
             </Text>
           </Box>
         </Flex>
-        
         <IconButton
-          aria-label="Close reply"
-          icon={<CloseIcon />}
-          size="xs"
+          aria-label="Cancel reply"
+          icon={<SmallCloseIcon />}
+          size="sm"
           variant="ghost"
-          color="gray.500"
-          onClick={onClose}
+          color="blue.500"
+          onClick={onCancelReply}
         />
       </Flex>
     </Box>

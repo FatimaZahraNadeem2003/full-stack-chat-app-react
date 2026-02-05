@@ -1,48 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
+  Box,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
   IconButton,
   useToast,
-  Text
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  Text,
+  Flex,
+  Avatar,
 } from '@chakra-ui/react';
-import { ChatState } from '../../Context/ChatProvider';
-import { HamburgerIcon, DeleteIcon, RepeatIcon } from '@chakra-ui/icons';
+import { ChatState, Message } from '../../Context/ChatProvider';
+import { DeleteIcon, ChatIcon, SmallCloseIcon } from '@chakra-ui/icons';
 import axios from 'axios';
 
 interface MessageContextMenuProps {
-  message: any;
-  messages: any[];
-  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
-  onReply: (message: any) => void;
+  message: Message;
+  onReply: (message: Message) => void;
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
 const MessageContextMenu: React.FC<MessageContextMenuProps> = ({ 
   message, 
+  onReply, 
   messages, 
-  setMessages,
-  onReply 
+  setMessages 
 }) => {
-  const { user } = ChatState();
+  const { user, selectedChat } = ChatState();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const toast = useToast();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const isMyMessage = user && message.sender._id === user._id;
+  const isOwnMessage = message.sender._id === user?._id;
+  const currentChat = selectedChat as any;
 
   const handleDeleteForMe = async () => {
     try {
-      const updatedMessages = messages.filter(m => m._id !== message._id);
-      setMessages(updatedMessages);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+        data: {
+          messageId: message._id,
+          deleteForEveryone: false
+        }
+      };
+
+      await axios.delete(`/api/message/${message._id}`, config);
       
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== message._id)
+      );
+
       toast({
-        title: 'Message deleted for you',
+        title: 'Message deleted',
+        description: 'Message deleted for you',
         status: 'success',
         duration: 3000,
         isClosable: true,
-        position: 'bottom'
       });
+      
+      setIsDeleteModalOpen(false);
     } catch (error: any) {
       toast({
         title: 'Error deleting message',
@@ -50,109 +77,130 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         status: 'error',
         duration: 3000,
         isClosable: true,
-        position: 'bottom'
       });
     }
   };
 
   const handleDeleteForEveryone = async () => {
-    if (!user) {
-      toast({
-        title: 'User not authenticated',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-        position: 'bottom'
-      });
-      return;
-    }
-    
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${user?.token}`,
         },
+        data: {
+          messageId: message._id,
+          deleteForEveryone: true
+        }
       };
 
       await axios.delete(`/api/message/${message._id}`, config);
       
-      const updatedMessages = messages.filter(m => m._id !== message._id);
-      setMessages(updatedMessages);
-      
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== message._id)
+      );
+
       toast({
-        title: 'Message deleted for everyone',
+        title: 'Message deleted',
+        description: 'Message deleted for everyone',
         status: 'success',
         duration: 3000,
         isClosable: true,
-        position: 'bottom'
       });
+      
+      setIsDeleteModalOpen(false);
     } catch (error: any) {
       toast({
         title: 'Error deleting message',
-        description: error.response?.data?.message || 'Failed to delete message',
+        description: error.response?.data?.message || 'Failed to delete message for everyone',
         status: 'error',
         duration: 3000,
         isClosable: true,
-        position: 'bottom'
       });
     }
   };
 
-  const handleTagMessage = () => {
-    onReply(message);
-  };
-
   return (
-    <Menu isOpen={isMenuOpen} onOpen={() => setIsMenuOpen(true)} onClose={() => setIsMenuOpen(false)}>
-      <MenuButton
-        as={IconButton}
-        aria-label="Message options"
-        icon={<HamburgerIcon />}
-        size="xs"
-        variant="ghost"
-        color="gray.500"
-        _hover={{ bg: 'gray.100', color: 'gray.700' }}
-        opacity={0}
-        className="message-menu-button"
-        transition="opacity 0.2s"
-        ml={2}
-      />
-      <MenuList 
-        minWidth="180px"
-        zIndex={9999}
-        boxShadow="xl"
-        border="1px solid"
-        borderColor="gray.200"
-      >
-        {/* <MenuItem 
-          icon={<RepeatIcon />} 
-          onClick={handleTagMessage}
-          _hover={{ bg: 'blue.50' }}
-        >
-          <Text fontSize="sm">Reply to message</Text>
-        </MenuItem> */}
-        
-        <MenuItem 
-          icon={<DeleteIcon />} 
-          onClick={handleDeleteForMe}
-          color="red.500"
-          _hover={{ bg: 'red.50' }}
-        >
-          <Text fontSize="sm">Delete for me</Text>
-        </MenuItem>
-        
-        {isMyMessage && (
+    <>
+      <Menu>
+        <MenuButton
+          as={IconButton}
+          aria-label="Message options"
+          icon={
+            <Box 
+              as="span" 
+              fontSize="16px" 
+              fontWeight="bold"
+              color="gray.500"
+              _hover={{ color: "gray.700" }}
+            >
+              ⋯
+            </Box>
+          }
+          variant="ghost"
+          size="sm"
+          opacity={0}
+          _groupHover={{ opacity: 1 }}
+          ref={menuButtonRef}
+        />
+        <MenuList minWidth="180px" zIndex={2000}>
+          <MenuItem 
+            icon={<ChatIcon />} 
+            onClick={() => onReply(message)}
+          >
+            Reply
+          </MenuItem>
           <MenuItem 
             icon={<DeleteIcon />} 
-            onClick={handleDeleteForEveryone}
             color="red.500"
-            _hover={{ bg: 'red.50' }}
+            onClick={() => setIsDeleteModalOpen(true)}
           >
-            <Text fontSize="sm">Delete for everyone</Text>
+            Delete
           </MenuItem>
-        )}
-      </MenuList>
-    </Menu>
+        </MenuList>
+      </Menu>
+
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delete Message</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text mb={4}>Are you sure you want to delete this message?</Text>
+            
+            <Flex align="center" mb={4} p={3} bg="gray.50" borderRadius="md">
+              <Avatar size="sm" src={message.sender.pic} name={message.sender.name} mr={3} />
+              <Box>
+                <Text fontWeight="bold" fontSize="sm">{message.sender.name}</Text>
+                <Text fontSize="sm">{message.content}</Text>
+                <Text fontSize="xs" color="gray.500">
+                  {new Date(message.createdAt).toLocaleString()}
+                </Text>
+              </Box>
+            </Flex>
+
+            <Flex gap={3}>
+              <Button 
+                flex={1} 
+                onClick={handleDeleteForMe}
+                colorScheme="red"
+                variant="outline"
+              >
+                Delete for me
+              </Button>
+              {isOwnMessage && (
+                <Button 
+                  flex={1} 
+                  onClick={handleDeleteForEveryone}
+                  colorScheme="red"
+                >
+                  Delete for everyone
+                </Button>
+              )}
+            </Flex>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 

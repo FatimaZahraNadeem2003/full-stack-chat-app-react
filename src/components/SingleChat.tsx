@@ -21,6 +21,7 @@ import ProfileModal from './Miscellaneous/ProfileModal';
 import UpdateGroupChatModal from './Miscellaneous/UpdateGroupChatModal';
 import axios from 'axios';
 import ScrollableChat from './ScrollableChat'; 
+import ReplyMessage from './Miscellaneous/ReplyMessage';
 import io from 'socket.io-client'
 import Lottie from 'react-lottie'
 import animationData from "../animations/typing.json";
@@ -45,11 +46,16 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   
   const { user, selectedChat, setSelectedChat, setNotification } = ChatState();
 
   const addEmoji = (emoji: string) => {
     setNewMessage(prev => prev + emoji);
+  };
+
+  const handleReply = (message: Message) => {
+    setReplyingTo(message);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -113,18 +119,17 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      console.log("Key pressed:", event.key, "Selected chat:", selectedChat);
-      if (event.key === "Escape" && selectedChat) {
-        console.log("Closing chat with Escape key");
+      if (event.key === "Escape" && selectedChat && typeof selectedChat !== 'string') {
         event.preventDefault();
+        event.stopImmediatePropagation();
         setSelectedChat('');
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown as EventListener, true);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown as EventListener, true);
     };
   }, [selectedChat, setSelectedChat]);
 
@@ -240,7 +245,17 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
             {loading ? (
               <Spinner size='xl' margin='auto' display="block" mt="20%" color="teal.500" />
             ) : (
-              <ScrollableChat messages={messages} />
+              <>
+                <ReplyMessage 
+                  replyingTo={replyingTo} 
+                  onCancelReply={() => setReplyingTo(null)} 
+                />
+                <ScrollableChat 
+                  messages={messages} 
+                  setMessages={setMessages}
+                  onReply={handleReply}
+                />
+              </>
             )}
             {isTyping && (
               <Box width="60px" ml={2} mt={2} bg="white" borderRadius="20px" p={1} boxShadow="sm">
