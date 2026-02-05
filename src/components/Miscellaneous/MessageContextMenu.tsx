@@ -49,13 +49,9 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         headers: {
           Authorization: `Bearer ${user?.token}`,
         },
-        data: {
-          messageId: message._id,
-          deleteForEveryone: false
-        }
       };
 
-      await axios.delete(`/api/message/${message._id}`, config);
+      await axios.delete(`/api/message/${message._id}?deleteForEveryone=false`, config);
       
       setMessages(prevMessages => 
         prevMessages.filter(msg => msg._id !== message._id)
@@ -87,13 +83,9 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
         headers: {
           Authorization: `Bearer ${user?.token}`,
         },
-        data: {
-          messageId: message._id,
-          deleteForEveryone: true
-        }
       };
 
-      await axios.delete(`/api/message/${message._id}`, config);
+      await axios.delete(`/api/message/${message._id}?deleteForEveryone=true`, config);
       
       setMessages(prevMessages => 
         prevMessages.filter(msg => msg._id !== message._id)
@@ -173,7 +165,7 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
                 <Text fontWeight="bold" fontSize="sm">{message.sender.name}</Text>
                 <Text fontSize="sm">{message.content}</Text>
                 <Text fontSize="xs" color="gray.500">
-                  {new Date(message.createdAt).toLocaleString()}
+                  {message.createdAt ? new Date(message.createdAt).toLocaleString() : "Just now"}
                 </Text>
               </Box>
             </Flex>

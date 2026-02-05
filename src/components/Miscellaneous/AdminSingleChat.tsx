@@ -219,6 +219,7 @@ const AdminSingleChat: React.FC<AdminSingleChatProps> = ({
               <ScrollableChat 
                 messages={messages} 
                 setMessages={setMessages} 
+                onReply={() => {}}
               />
             )}
           </Box>
