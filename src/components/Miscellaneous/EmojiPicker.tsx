@@ -1,54 +1,37 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Picker from 'emoji-picker-react';
-import { IconButton, Box } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
+import { Popover, PopoverTrigger, PopoverContent, IconButton, Box, Portal } from '@chakra-ui/react';
+import { BsEmojiSmile } from 'react-icons/bs';
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
 }
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleEmojiClick = (emojiObject: any) => {
-    onEmojiSelect(emojiObject.emoji);
-    setIsOpen(false);
-  };
-
   return (
-    <Box position="relative" display="inline-block">
-      <IconButton
-        aria-label="Add Emoji"
-        icon={<AddIcon />}
-        size="sm"
-        variant="ghost"
-        onClick={() => setIsOpen(!isOpen)}
-        color={isOpen ? "teal.500" : "gray.500"}
-      />
-      
-      {isOpen && (
-        <Box
-          position="absolute"
-          bottom="40px"
-          left="0"
-          zIndex={9999}
-          boxShadow="xl"
-          borderRadius="md"
-          border="1px solid"
-          borderColor="gray.200"
-          bg="white"
-          p={2}
-        >
-          <Picker 
-            onEmojiClick={handleEmojiClick}
-            preload={true}
-            skinTonesDisabled={false}
-            height={300}
-            width={300}
-          />
+    <Popover placement="top-start" isLazy>
+      <PopoverTrigger>
+        <IconButton
+          aria-label="Add Emoji"
+          icon={<BsEmojiSmile size="22px" color="#54656f" />}
+          variant="ghost"
+          borderRadius="full"
+          _hover={{ bg: "gray.100" }}
+        />
+      </PopoverTrigger>
+      <Portal>
+        <Box zIndex={10000}>
+          <PopoverContent border="none" boxShadow="2xl" borderRadius="15px" width="auto">
+            <Picker 
+              onEmojiClick={(emojiData) => onEmojiSelect(emojiData.emoji)}
+              height={400}
+              width={320}
+              previewConfig={{ showPreview: false }}
+            />
+          </PopoverContent>
         </Box>
-      )}
-    </Box>
+      </Portal>
+    </Popover>
   );
 };
 
