@@ -183,16 +183,24 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
         }
 
         const config = { headers: { 'Content-type': 'application/json', Authorization: `Bearer ${(user as User).token}` } };
-        const { data } = await axios.post<Message>('/api/message', { 
+        const messagePayload: any = { 
             content: newMessage || selectedFile?.name, 
             chatId: currentChat._id,
             ...fileData
-        }, config);
+        };
+        
+        // Add reply information if replying to a message
+        if (replyingTo) {
+          messagePayload.replyTo = replyingTo._id;
+        }
+
+        const { data } = await axios.post<Message>('/api/message', messagePayload, config);
 
         socket.emit('new message', data);
         setMessages([...messages, data]);
         setNewMessage('');
         setSelectedFile(null);
+        setReplyingTo(null); // Clear reply after sending
         setUploading(false);
         setCurrentUserTyping(false); 
       } catch (error) { 

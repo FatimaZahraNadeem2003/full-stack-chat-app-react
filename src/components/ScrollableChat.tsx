@@ -61,6 +61,25 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
                 setMessages={setMessages}
               />
             </Flex>
+
+            {m.replyTo && (
+              <Box 
+                bg="blue.50" 
+                p={2} 
+                borderRadius="md" 
+                mb={2}
+                borderLeft="2px solid" 
+                borderLeftColor="blue.400"
+              >
+                <Text fontSize="xs" fontWeight="bold" color="blue.600">
+                  {m.replyTo.sender?.name || "Someone"}
+                </Text>
+                <Text fontSize="sm" color="gray.700" noOfLines={1}>
+                  {m.replyTo.content}
+                </Text>
+              </Box>
+            )}
+
             {m.fileUrl ? (
               <Box mb={2} position="relative">
                 {m.fileType?.startsWith("image/") ? (
@@ -72,7 +91,7 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
                       maxH="300px"
                       objectFit="contain"
                       cursor="pointer"
-                      onClick={() => window.open(m.fileUrl, "_blank")}
+                      onClick={() => window.open(m.fileUrl!, "_blank")}
                       transition="transform 0.2s"
                       _hover={{ transform: "scale(1.02)" }}
                     />
@@ -87,7 +106,7 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
                       right={2}
                       onClick={(e) => {
                         e.stopPropagation();
-                        downloadFile(m.fileUrl, m.fileName || "image.jpg");
+                        downloadFile(m.fileUrl!, m.fileName || "image.jpg");
                       }}
                       _hover={{ bg: "blackAlpha.700" }}
                     />
@@ -113,7 +132,7 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
                       right={2}
                       onClick={(e) => {
                         e.stopPropagation();
-                        downloadFile(m.fileUrl, m.fileName || "video.mp4");
+                        downloadFile(m.fileUrl!, m.fileName || "video.mp4");
                       }}
                       _hover={{ bg: "blackAlpha.700" }}
                     />
@@ -132,7 +151,7 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
                       variant="ghost"
                       colorScheme="blue"
                       ml={2}
-                      onClick={() => downloadFile(m.fileUrl, m.fileName || "file")}
+                      onClick={() => downloadFile(m.fileUrl!, m.fileName || "file")}
                     />
                   </Flex>
                 )}
@@ -141,7 +160,7 @@ const ScrollableChat = ({ messages, setMessages, onReply }: { messages: Message[
 
             <Text fontSize="15px">{m.content}</Text>
             <Text fontSize="9px" textAlign="right" color="gray.500" mt={1}>
-              {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(m.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </Box>
         </Flex>
