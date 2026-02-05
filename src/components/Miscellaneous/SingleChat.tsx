@@ -113,7 +113,7 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
                   {currentChat.isGroupChat ? currentChat.chatName : getSender(user, currentChat.users)}
                 </Text>
                 <Text fontSize="xs" color={isTyping ? "green.500" : "gray.500"}>
-                    {isTyping ? "typing..." : "online"}
+                    {/* {isTyping ? "typing..." : "online"} */}
                 </Text>
               </Box>
             </Flex>

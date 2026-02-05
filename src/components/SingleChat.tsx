@@ -112,6 +112,20 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   }, [selectedChat]);
 
   useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && selectedChat) {
+        setSelectedChat('');
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedChat, setSelectedChat]);
+
+  useEffect(() => {
     const handleMessageReceived = (newMessageRecieved: Message) => {
       if (!selectedChatCompare || typeof selectedChatCompare === 'string' || selectedChatCompare._id !== newMessageRecieved.chat._id) {
         setNotification((prev: any) => [newMessageRecieved, ...prev]);
