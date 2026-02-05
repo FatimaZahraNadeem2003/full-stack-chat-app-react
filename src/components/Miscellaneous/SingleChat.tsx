@@ -94,7 +94,6 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     <Flex flexDir="column" h="100%" w="100%" bg="#efeae2" position="relative">
       {selectedChat && typeof selectedChat !== 'string' ? (
         <>
-          {/* HEADER - GLASSMORPHISM STYLE */}
           <Flex
             p={3} px={5} w='100%' alignItems='center' justifyContent='space-between'
             bg="white" borderBottom="1px solid #d1d7db" zIndex={10}
