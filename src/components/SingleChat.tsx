@@ -1,15 +1,31 @@
-import React, { useEffect, useState } from 'react'
-import { ChatState, User, Chat, Message } from '../Context/ChatProvider'
-import { Box, FormControl, IconButton, Input, Spinner, Text, useToast, Flex, Avatar, InputGroup, InputRightElement } from '@chakra-ui/react';
-import { ArrowBackIcon, CloseIcon, ViewIcon } from '@chakra-ui/icons';
-import { getSender, getSenderFull } from './../config/ChatLogics';
+import React, { useEffect, useState, useRef } from 'react'
+import { ChatState, User, Chat, Message } from "../Context/ChatProvider";
+import { 
+  Box, 
+  FormControl, 
+  IconButton, 
+  Input, 
+  Spinner, 
+  Text, 
+  useToast, 
+  Flex, 
+  Avatar, 
+  InputGroup, 
+  InputRightElement
+} from '@chakra-ui/react';
+import { Image } from '@chakra-ui/image';
+// CloseIcon ko @chakra-ui/icons se import kiya hai error fix karne ke liye
+import { ArrowBackIcon, AttachmentIcon, ViewIcon, CloseIcon } from '@chakra-ui/icons';
+import { IoSend } from 'react-icons/io5';
+import { getSender, getSenderFull } from "../config/ChatLogics";
 import ProfileModal from './Miscellaneous/ProfileModal';
 import UpdateGroupChatModal from './Miscellaneous/UpdateGroupChatModal';
 import axios from 'axios';
-import ScrollableChat from './ScrollableChat';
+import ScrollableChat from './ScrollableChat'; 
 import io from 'socket.io-client'
 import Lottie from 'react-lottie'
-import animationData from '../animations/typing.json'
+import animationData from "../animations/typing.json";
+import EmojiPicker from './Miscellaneous/EmojiPicker';
 
 interface SingleChatProps {
   fetchAgain: boolean;
@@ -24,32 +40,53 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState<string>('');
   const [socketConnected, setSocketConnected] = useState(false);
-  const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  
+  const { user, selectedChat, setSelectedChat, setNotification } = ChatState();
 
-  const defaultOptions = {
-    loop: true,
-    autoplay: true,
-    animationData: animationData,
-    rendererSettings: { preserveAspectRatio: 'xMidYMid slice' }
-  }
+  const addEmoji = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+  };
 
+  // Utility function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Update preview URL when selectedFile changes
+  useEffect(() => {
+    if (selectedFile && selectedFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [selectedFile]);
   const toast = useToast();
-  const { user, selectedChat, setSelectedChat, notification, setNotification } = ChatState();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const currentChat = selectedChat as Chat;
 
   const fetchMessages = async () => {
-    if (!selectedChat) return;
+    if (!selectedChat || typeof selectedChat === 'string') return;
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
-      const { data } = await axios.get<Message[]>(`/api/message/${(selectedChat as Chat)._id}`, config);
+      const { data } = await axios.get<Message[]>(`/api/message/${currentChat._id}`, config);
       setMessages(data);
       setLoading(false);
-      socket.emit('join chat', (selectedChat as Chat)._id);
-    } catch (error: any) {
-      toast({ title: 'Error Occured!', description: 'Failed to load messages', status: 'error', duration: 5000, isClosable: true, position: 'bottom' });
+      socket.emit('join chat', currentChat._id);
+    } catch (error) {
+      toast({ title: 'Error!', description: "Failed to load messages", status: 'error', duration: 3000 });
     }
   }
 
@@ -66,373 +103,252 @@ const SingleChat: React.FC<SingleChatProps> = ({ fetchAgain, setFetchAgain }) =>
     selectedChatCompare = selectedChat;
   }, [selectedChat]);
 
-  const markMessagesAsRead = async (chatId: string) => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${(user as User).token}` } };
-      await axios.put(`/api/chat/${chatId}/read`, {}, config);
-    } catch (error) {
-      console.log('Error marking messages as read:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedChat && user) {
-      markMessagesAsRead((selectedChat as Chat)._id);
-    }
-  }, [selectedChat, user]);
-
   useEffect(() => {
     const handleMessageReceived = (newMessageRecieved: Message) => {
-      console.log('New message received:', newMessageRecieved);
-      if (!selectedChatCompare || selectedChatCompare._id !== newMessageRecieved.chat._id) {
-        let notificationText;
-        if (newMessageRecieved.fileUrl) {
-          notificationText = `${newMessageRecieved.sender.name} has sent you a file: "${newMessageRecieved.fileName || newMessageRecieved.content}"`;
-        } else {
-          notificationText = `${newMessageRecieved.sender.name} has sent you a message: "${newMessageRecieved.content}"`;
-        }
-        
-        const enhancedNotification = {
-          ...newMessageRecieved,
-          notificationText,
-          timestamp: new Date().toISOString(),
-          isRead: false
-        };
-        console.log('Adding notification:', enhancedNotification);
-        setNotification(prev => {
-          const newNotifications = [enhancedNotification, ...prev];
-          console.log('Updated notifications:', newNotifications);
-          return newNotifications;
-        });
+      if (!selectedChatCompare || typeof selectedChatCompare === 'string' || selectedChatCompare._id !== newMessageRecieved.chat._id) {
+        setNotification((prev: any) => [newMessageRecieved, ...prev]);
         setFetchAgain(prev => !prev);
       } else {
         setMessages(prev => [...prev, newMessageRecieved]);
-        markMessagesAsRead(newMessageRecieved.chat._id);
       }
     };
-
     socket.on('message recieved', handleMessageReceived);
-    
-    return () => {
-      socket.off('message recieved', handleMessageReceived);
-    };
-  }, [socket, selectedChatCompare, setNotification, setFetchAgain, setMessages]);
-
-  const sendMessage = async (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && newMessage) {
-      socket.emit('stop typing', (selectedChat as Chat)._id)
-      try {
-        const config = { headers: { 'Content-type': 'application/json', Authorization: `Bearer ${(user as User).token}` } };
-        const messageData: any = { content: newMessage, chatId: selectedChat };
-        if (replyingTo) messageData.replyTo = replyingTo._id;
-        
-        setNewMessage('');
-        const { data } = await axios.post<Message>('/api/message', messageData, config);
-        socket.emit('new message', data)
-        setMessages([...messages, data])
-        setReplyingTo(null); 
-      } catch (error: any) {
-        toast({ title: 'Error Occured!', description: 'Failed to send message', status: 'error', duration: 5000, position: 'bottom' });
-      }
-    }
-  }
-
-  const typingHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    if (!socketConnected) return;
-    if (!typing) {
-      setTyping(true);
-      socket.emit('typing', (selectedChat as Chat)._id);
-    }
-    let lastTypingTime = new Date().getTime();
-    setTimeout(() => {
-      if (new Date().getTime() - lastTypingTime >= 3000 && typing) {
-        socket.emit('stop typing', (selectedChat as Chat)._id);
-        setTyping(false);
-      }
-    }, 3000);
-  };
-
-  const clearReply = () => setReplyingTo(null);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && selectedChat) {
-        setSelectedChat('');
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [selectedChat, setSelectedChat]);
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
-  };
+    return () => { socket.off('message recieved', handleMessageReceived); };
+  }, [socket, selectedChatCompare]);
 
   const handleFileUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-
-    try {
-      console.log('Starting file upload for:', file.name, file.type);
-      const config = { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${(user as User).token}` } };
-      const response = await axios.post('/api/upload', formData, config);
-      console.log('Upload response:', response.data);
-      return response.data.fileUrl;
-    } catch (error: any) {
-      console.error('File upload error:', error);
-      console.error('Error response:', error.response);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
+    
+    // Create config with progress tracking
+    const config = { 
+      headers: { 
+        'Content-Type': 'multipart/form-data', 
+        Authorization: `Bearer ${(user as User).token}` 
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+        setUploadProgress(progress);
       }
-      toast({ 
-        title: 'Error Occured!', 
-        description: error.response?.data?.message || error.message || 'Failed to upload file', 
-        status: 'error', 
-        duration: 5000, 
-        position: 'bottom' 
-      });
+    };
+    
+    try {
+      const response = await axios.post('/api/upload', formData, config);
+      setUploadProgress(null); // Reset progress after upload
+      return response.data; 
+    } catch (error) {
+      setUploadProgress(null); // Reset progress on error
       throw error;
     }
   };
 
-  const sendFileMessage = async () => {
-    if (!selectedFile || !selectedChat) return;
-    
-    setUploading(true);
-    
-    const tempMessageId = `temp-${Date.now()}`;
-    const tempMessage: Message = {
-      _id: tempMessageId,
-      sender: user as User,
-      content: selectedFile.name,
-      chat: selectedChat as any,
-      fileType: selectedFile.type,
-      fileName: selectedFile.name,
-      isUploading: true,
-    };
-    
-    setMessages(prev => [...prev, tempMessage]);
-    
-    try {
-      console.log('Uploading file:', selectedFile.name, selectedFile.type);
-      const fileUrl = await handleFileUpload(selectedFile);
-      console.log('File uploaded successfully, URL:', fileUrl);
-      
-      const config = { 
-        headers: { 
-          'Content-type': 'application/json', 
-          Authorization: `Bearer ${(user as User).token}` 
-        } 
-      };
-      
-      const messageData = { 
-        content: selectedFile.name,
-        chatId: selectedChat,
-        fileUrl: fileUrl,
-        fileType: selectedFile.type
-      };
-      
-      console.log('Sending message with file data:', messageData);
-      const { data } = await axios.post<Message>('/api/message', messageData, config);
-      console.log('Message sent successfully:', data);
-      socket.emit('new message', data);
-      
-      setMessages(prev => prev.map(msg => 
-        msg._id === tempMessageId ? data : msg
-      ));
-      
-      setSelectedFile(null);
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+  const sendMessage = async () => {
+    if ((newMessage.trim() || selectedFile) && currentChat) {
+      socket.emit('stop typing', currentChat._id);
+      try {
+        setUploading(true);
+        let fileData = { fileUrl: "", fileType: "", fileName: "" };
+        
+        if (selectedFile) {
+          fileData = await handleFileUpload(selectedFile);
+        }
+
+        const config = { headers: { 'Content-type': 'application/json', Authorization: `Bearer ${(user as User).token}` } };
+        const { data } = await axios.post<Message>('/api/message', { 
+            content: newMessage || selectedFile?.name, 
+            chatId: currentChat._id,
+            ...fileData
+        }, config);
+
+        socket.emit('new message', data);
+        setMessages([...messages, data]);
+        setNewMessage('');
+        setSelectedFile(null);
+        setUploading(false);
+      } catch (error) { 
+        toast({ title: 'Error!', status: 'error' });
+        setUploading(false);
       }
-    } catch (error: any) {
-      console.error('Send file error:', error);
-      console.error('Error response:', error.response);
-      toast({ 
-        title: 'Error Occured!', 
-        description: error.response?.data?.message || error.message || 'Failed to send file', 
-        status: 'error', 
-        duration: 5000, 
-        position: 'bottom' 
-      });
-      
-      setMessages(prev => prev.filter(msg => msg._id !== tempMessageId));
-    } finally {
-      setUploading(false);
     }
-  };
+  }
 
   return (
-    <>
-      {selectedChat ? (
-        <Flex flexDir="column" h="100%" w="100%" overflow="hidden">
-          <Flex
-            fontSize={{ base: '24px', md: '28px' }}
-            p={3}
-            w='100%'
-            fontFamily='Work sans'
-            alignItems='center'
-            justifyContent='space-between'
-            borderBottomWidth="1px"
-            bg="whiteAlpha.900"
+    <Flex flexDir="column" h="100%" w="100%" bg="#efeae2" position="relative">
+      {selectedChat && typeof selectedChat !== 'string' ? (
+        <>
+          {/* HEADER SECTION */}
+          <Flex 
+            p={3} px={5} w='100%' alignItems='center' justifyContent='space-between' 
+            bg="rgba(255, 255, 255, 0.9)" backdropFilter="blur(10px)" 
+            borderBottom="1px solid #d1d7db" zIndex={10}
           >
-            <IconButton
-              display={{ base: 'flex', md: 'none' }}
-              icon={<ArrowBackIcon />}
-              onClick={() => setSelectedChat('')}
-              aria-label="Back"
-              variant='ghost'
-            />
-
-            <Box flex="1" ml={2}>
-              {selectedChat && typeof selectedChat !== 'string' && !selectedChat.isGroupChat ? (
-                <Text fontWeight="bold">{getSender(user, selectedChat.users)}</Text>
-              ) : (
-                <Text fontWeight="bold">{typeof selectedChat !== 'string' && selectedChat.chatName.toUpperCase()}</Text>
-              )}
-            </Box>
-
-            {selectedChat && typeof selectedChat !== 'string' && !selectedChat.isGroupChat ? (
-              <ProfileModal user={getSenderFull(user, selectedChat.users) as User} />
-            ) : (
-              <UpdateGroupChatModal
-                fetchAgain={fetchAgain}
-                setFetchAgain={setFetchAgain}
-                fetchMessages={fetchMessages}
-              />
-            )}
+             <Flex align="center">
+                <IconButton display={{ base: 'flex', md: 'none' }} icon={<ArrowBackIcon />} onClick={() => setSelectedChat('')} mr={2} variant="ghost" aria-label="back"/>
+                <Avatar 
+                  size="sm" mr={3} 
+                  src={(getSenderFull(user, currentChat.users) as User).pic} 
+                  name={getSender(user, currentChat.users)} 
+                />
+                <Box>
+                    <Text fontWeight="bold" fontSize="md" color="#111b21">
+                      {currentChat.isGroupChat ? currentChat.chatName : getSender(user, currentChat.users)}
+                    </Text>
+                    <Text fontSize="xs" color={isTyping ? "green.500" : "gray.500"}>
+                      {isTyping ? "typing..." : "online"}
+                    </Text>
+                </Box>
+             </Flex>
+             <Box>
+                {!currentChat.isGroupChat ? (
+                  <ProfileModal user={getSenderFull(user, currentChat.users) as User} />
+                ) : (
+                  <UpdateGroupChatModal fetchAgain={fetchAgain} setFetchAgain={setFetchAgain} fetchMessages={fetchMessages} />
+                )}
+             </Box>
           </Flex>
 
-          <Box
-            display='flex'
-            flexDir='column'
-            flex="1" 
-            p={3}
-            bgImage="linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url('https://images.unsplash.com/photo-1515041219749-89347f83291a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')"
-            bgSize="cover"
-            bgPosition="center"
-            bgRepeat="no-repeat"
-            overflowY='auto' 
-            css={{
-              '&::-webkit-scrollbar': { width: '5px' },
-              '&::-webkit-scrollbar-thumb': { background: '#cbd5e0', borderRadius: '10px' },
-            }}
+          {/* CHAT BODY (WALLPAPER) */}
+          <Box 
+            flex="1" p={4} overflowY='auto' 
+            bgImage="url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')"
+            bgRepeat="repeat"
+            sx={{ '&::-webkit-scrollbar': { width: '6px' }, '&::-webkit-scrollbar-thumb': { background: '#ccc', borderRadius: '10px' } }}
           >
             {loading ? (
-              <Spinner size='xl' w={20} h={20} alignSelf='center' margin='auto' />
+              <Spinner size='xl' margin='auto' display="block" mt="20%" color="teal.500" />
             ) : (
-              <ScrollableChat messages={messages as any} setMessages={setMessages as any} />
+              <ScrollableChat messages={messages} />
             )}
-          </Box>
-
-          <Box p={3} bg="white" borderTopWidth="1px">
             {isTyping && (
-              <Box mb={1} ml={2}>
-                <Lottie options={defaultOptions} width={50} style={{ marginLeft: 0 }} />
+              <Box width="60px" ml={2} mt={2} bg="white" borderRadius="20px" p={1} boxShadow="sm">
+                <Lottie options={{ animationData }} width={40} />
               </Box>
             )}
-            
-            {replyingTo && (
-              <Box 
-                bg="gray.100" 
-                borderLeft="4px solid" 
-                borderColor="teal.500" 
-                p={3} 
-                mb={3} 
-                borderRadius="lg" 
-                boxShadow="sm"
-                position="relative"
-                top={-10}
-              >
-                <Flex justifyContent="space-between" alignItems="flex-start" mb={1}>
-                   <Text fontSize="xs" fontWeight="bold" color="teal.700">Replying to {replyingTo.sender.name}</Text>
-                   <CloseIcon fontSize="12px" cursor="pointer" onClick={clearReply} color="gray.500" />
-                </Flex>
-                <Text fontSize="sm" color="gray.700" noOfLines={2}>{replyingTo.content}</Text>
-              </Box>
-            )}
-
-            {selectedFile && (
-              <Box bg="blue.50" p={2} mb={2} borderRadius="md" border="1px solid" borderColor="blue.200">
-                <Flex justifyContent="space-between" alignItems="center">
-                  {uploading ? (
-                    <Flex alignItems="center" gap={2}>
-                      <Spinner size="sm" />
-                       <Text fontSize="sm">sending...</Text> 
-                    </Flex>
-                  ) : (
-                    <>
-                      <Text fontSize="sm">
-                        <ViewIcon mr={2} /> {selectedFile.name}
-                      </Text>
-                      <IconButton 
-                        size="xs" 
-                        colorScheme="blue" 
-                        onClick={sendFileMessage}
-                        aria-label="Send file"
-                        icon={<ArrowBackIcon />}
-                        isDisabled={uploading}
-                      />
-                    </>
-                  )}
-                </Flex>
-              </Box>
-            )}
-            
-            <FormControl onKeyDown={sendMessage} isRequired display='flex' alignItems='center'>
-              <InputGroup>
-                <Input
-                  variant='filled'
-                  bg='gray.100'
-                  placeholder='Enter a message...'
-                  onChange={typingHandler}
-                  value={newMessage}
-                  borderRadius='full'
-                  _focus={{ bg: "white", borderColor: "teal.400" }}
-                />
-                <InputRightElement width="4.5rem">
-                  <IconButton
-                    aria-label="Upload file"
-                    icon={<ViewIcon />}
-                    size="sm"
-                    colorScheme="teal"
-                    onClick={() => fileInputRef.current?.click()}
-                    mr={2}
-                  />
-                </InputRightElement>
-              </InputGroup>
-            </FormControl>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-              accept="*/*"
-            />
           </Box>
-        </Flex>
+
+          {/* FILE PREVIEW CAPSULE */}
+          {selectedFile && (
+            <Box px={4} py={2} bg="white" borderTop="1px solid #e2e8f0">
+               <Flex align="center" bg="#f0f2f5" p={3} borderRadius="15px" justify="space-between" boxShadow="inner">
+                  <Flex align="center" overflow="hidden">
+                    {selectedFile.type.startsWith('image/') ? (
+                      <Image 
+                        src={previewUrl || ''} 
+                        alt="preview" 
+                        boxSize="40px" 
+                        objectFit="cover" 
+                        borderRadius="md" 
+                        mr={3} 
+                      />
+                    ) : selectedFile.type.startsWith('video/') ? (
+                      <Box boxSize="40px" bg="gray.200" display="flex" alignItems="center" justifyContent="center" borderRadius="md" mr={3}>
+                        <AttachmentIcon color="gray.500" />
+                      </Box>
+                    ) : (
+                      <AttachmentIcon mr={3} color="teal.500" />
+                    )}
+                    <Box overflow="hidden">
+                      <Text fontSize="sm" fontWeight="bold" isTruncated>{selectedFile.name}</Text>
+                      {uploading ? (
+                        <Flex align="center">
+                          <Spinner size="xs" mr={2} />
+                          <Text fontSize="xs" color="blue.500">Uploading...</Text>
+                        </Flex>
+                      ) : (
+                        <Text fontSize="xs" color="gray.500">{formatFileSize(selectedFile.size)} • Ready to send</Text>
+                      )}
+                    </Box>
+                  </Flex>
+                  <IconButton 
+                    size="sm" 
+                    icon={<CloseIcon />} 
+                    colorScheme="red" 
+                    variant="ghost" 
+                    borderRadius="full"
+                    onClick={() => !uploading && setSelectedFile(null)} 
+                    aria-label="cancel" 
+                    isDisabled={uploading}
+                  />
+               </Flex>
+            </Box>
+          )}
+
+          {/* FOOTER INPUT BAR */}
+          <Box p={3} bg="#f0f2f5">
+             <Flex align="center" gap={3}>
+                <Box bg="white" borderRadius="30px" flex={1} display="flex" alignItems="center" px={3} boxShadow="sm" border="1px solid #e2e8f0">
+                   <EmojiPicker onEmojiSelect={addEmoji} />
+                   <Input
+                     variant="unstyled"
+                     placeholder={uploading ? (uploadProgress !== null ? `Uploading... ${uploadProgress}%` : "Sending file...") : "Type a message"}
+                     p={3}
+                     fontSize="md"
+                     value={newMessage}
+                     isDisabled={uploading}
+                     onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        if(!socketConnected) return;
+                        socket.emit('typing', currentChat._id);
+                        let lastTypingTime = new Date().getTime();
+                        setTimeout(() => {
+                            let timeNow = new Date().getTime();
+                            if (timeNow - lastTypingTime >= 3000) socket.emit('stop typing', currentChat._id);
+                        }, 3000);
+                     }}
+                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                   />
+                   <IconButton 
+                    aria-label="attach" 
+                    icon={<AttachmentIcon />} 
+                    variant="ghost" 
+                    borderRadius="full" 
+                    color="gray.600" 
+                    _hover={{ color: "teal.500", bg: "gray.100" }}
+                    onClick={() => fileInputRef.current?.click()} 
+                    isDisabled={uploading}
+                   />
+                </Box>
+                
+                <IconButton
+                  colorScheme="teal"
+                  icon={uploading ? <Spinner size="sm" color="white" /> : <IoSend size="22px" color="white" />}
+                  borderRadius="full"
+                  onClick={sendMessage}
+                  h="50px" w="50px"
+                  boxShadow="lg"
+                  _hover={{ bg: "teal.600", transform: "scale(1.05)" }}
+                  _active={{ transform: "scale(0.95)" }}
+                  aria-label="Send"
+                  isDisabled={uploading || (!newMessage.trim() && !selectedFile)}
+                />
+             </Flex>
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])} 
+             />
+          </Box>
+        </>
       ) : (
-        <Flex align='center' justify='center' h='100%' w="100%">
-          <Text fontSize='3xl' fontFamily='Work sans' color='gray.400'>
-            Click on a user to start chatting
-          </Text>
+        /* WELCOME SCREEN */
+        <Flex align='center' justify='center' h='100%' bg="#f8f9fa" flexDir="column" textAlign="center">
+            <Box p={10}>
+                <Avatar 
+                  size="2xl" mb={6} bg="teal.500" 
+                  icon={<IoSend color="white" size="40px" style={{ transform: "rotate(-10deg)" }} />} 
+                />
+                <Text fontSize='3xl' fontWeight="300" color='#41525d'>WhatsApp Web Clone</Text>
+                <Text color="#667781" mt={4} maxW="400px">
+                    Send and receive messages with ease. Modern, fast, and secure communication.
+                </Text>
+                <Flex mt={10} color="#8696a0" align="center" justify="center" fontSize="sm">
+                  <Text>🔒 End-to-end encrypted</Text>
+                </Flex>
+            </Box>
         </Flex>
       )}
-    </>
+    </Flex>
   )
 }
 
